@@ -1,664 +1,699 @@
 ﻿using EcoParking_Proyecto;
-
+using EcoParkingApp;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
-using System.Net.Mail;
-
-namespace EcoParkingApp;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 class Program
 {
-    static List<Administrador> administradores = new List<Administrador>();
-    static List<Usuario> usuariosRegistrados = new List<Usuario>();
-
     static async Task Main(string[] args)
     {
-        Console.WriteLine("🌐 Inicializando EcoParking System...");
+        Console.Title = "EcoParking System";
 
-        try
+        // Verificaciones silenciosas (sin mensajes en consola)
+        await VerificacionesSilenciosasAsync();
+
+        bool salir = false;
+
+        while (!salir)
         {
-            // Inicializar base de datos con todas las tablas
-            using var context = new EcoParkingContext();
-            await context.Database.EnsureCreatedAsync();
-            await context.InitializeDataAsync();
-
-            Console.WriteLine("✅ Base de datos inicializada correctamente");
-
-            // Cargar datos iniciales
-            await CargarDatosInicialesAsync();
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error inicializando sistema: {ex.Message}");
-            return;
-        }
-
-        // Inicialización de espacios de parqueo
-        List<EcoParking> parqueos = new()
-        {
-            new EcoParking("Guayaquil-Centro", "Auto", true, 1.50m, "GYE123"),
-            new EcoParking("Guayaquil-Norte", "Moto", true, 1.00m, "GYN456"),
-            new EcoParking("Samborondón", "Camioneta", true, 2.00m, "SAM789")
-        };
-
-        bool ejecutarPrograma = true;
-        while (ejecutarPrograma)
-        {
-            string[] opcionesInicio = {
-                "1. Iniciar como Usuario",
-                "2. Iniciar como Administrador",
-                "3. Ver reseñas de parqueos",
-                "4. Ver estadísticas del sistema",
-                "5. Salir del sistema"
-            };
-
-            MostrarMenuConMarco("MENÚ PRINCIPAL", opcionesInicio);
-            string opcionInicio = Console.ReadLine() ?? "";
-
-            switch (opcionInicio)
-            {
-                case "1":
-                    await FlujoPersonas.RegistrarEntradaStaticAsync("Usuario Anónimo", "Usuario");
-                    await EjecutarUsuarioAsync(parqueos);
-                    break;
-
-                case "2":
-                    var admin = await ObtenerAdministradorAsync();
-                    if (admin != null)
-                    {
-                        await FlujoPersonas.RegistrarEntradaStaticAsync(admin.Nombre, "Administrador");
-                        await EjecutarAdministradorAsync(admin, parqueos);
-                    }
-                    break;
-
-                case "3":
-                    await ReseñaParqueo.MostrarAsync();
-                    Console.WriteLine("\nPresiona ENTER para continuar...");
-                    Console.ReadLine();
-                    break;
-
-                case "4":
-                    await MostrarEstadisticasCompletasAsync();
-                    break;
-
-                case "5":
-                    ejecutarPrograma = false;
-                    Console.WriteLine("🙏 Gracias por usar EcoParking. ¡Hasta pronto!");
-                    break;
-
-                default:
-                    Console.WriteLine("❌ Opción no válida.");
-                    break;
-            }
-        }
-    }
-
-    static async Task CargarDatosInicialesAsync()
-    {
-        try
-        {
-            using var context = new EcoParkingContext();
-            usuariosRegistrados = await context.Usuarios.ToListAsync();
-            administradores = await context.Administradores.ToListAsync();
-
-            Console.WriteLine($"📊 Datos cargados: {usuariosRegistrados.Count} usuarios, {administradores.Count} administradores");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error cargando datos: {ex.Message}");
-        }
-    }
-
-    static async Task MostrarEstadisticasCompletasAsync()
-    {
-        try
-        {
-            Console.WriteLine("\n📈 ESTADÍSTICAS COMPLETAS DEL SISTEMA");
-            Console.WriteLine("===================================");
-
-            // Estadísticas de ganancias
-            await GananciasEcoParking.MostrarResumenAsync();
-
-            // Estadísticas de flujo de personas
-            await FlujoPersonas.MostrarHistorialAsync();
-
-            Console.WriteLine("\nPresiona ENTER para continuar...");
-            Console.ReadLine();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error mostrando estadísticas: {ex.Message}");
-        }
-    }
-
-    static async Task EjecutarUsuarioAsync(List<EcoParking> parqueos)
-    {
-        EcoParking? espacioSeleccionado = null;
-        Usuario? usuario = null;
-        DateTime horaSalidaProgramada = DateTime.MinValue;
-
-        // Acceso de usuario
-        string[] opcionesLogin = { "1. Registrarse", "2. Iniciar sesión" };
-        MostrarMenuConMarco("ACCESO DE USUARIO", opcionesLogin);
-        string loginOption = Console.ReadLine() ?? "";
-
-        if (loginOption == "1")
-        {
-            usuario = await Usuario.RegistrarNuevoUsuarioAsync();
-            if (usuario != null)
-            {
-                usuariosRegistrados.Add(usuario);
-                Console.WriteLine($"✅ Usuario {usuario.Nombre} registrado exitosamente");
-            }
-        }
-        else if (loginOption == "2")
-        {
-            usuario = await Usuario.IniciarSesionAsync();
-        }
-        else
-        {
-            Console.WriteLine("❌ Opción inválida.");
-            return;
-        }
-
-        if (usuario == null)
-        {
-            Console.WriteLine("❌ Inicio de sesión fallido.");
-            return;
-        }
-
-        usuario.MostrarDatos();
-
-        // Selección de espacio
-        while (espacioSeleccionado == null)
-        {
-            Console.WriteLine("\n=== OPCIONES DE PARQUEO DISPONIBLES ===");
-            for (int i = 0; i < parqueos.Count; i++)
-            {
-                var p = parqueos[i];
-                Console.WriteLine($"{i + 1}. 🅿️ Ubicación: {p.Ubicacion} | Tipo: {p.TipoVehiculo} | Disponible: {(p.Disponible ? "✅ Sí" : "❌ No")} | Tarifa: ${p.TarifaPorHora:F2}/hora");
-            }
-
-            Console.Write("Seleccione el número del parqueo: ");
-            if (int.TryParse(Console.ReadLine(), out int seleccion) && seleccion >= 1 && seleccion <= parqueos.Count)
-            {
-                espacioSeleccionado = parqueos[seleccion - 1];
-                Console.WriteLine($"✅ Has seleccionado el espacio en {espacioSeleccionado.Ubicacion}");
-            }
-            else
-            {
-                Console.WriteLine("❌ Selección inválida.");
-            }
-        }
-
-        // Menú de usuario
-        bool continuar = true;
-        while (continuar)
-        {
-            string[] opcionesUsuario = {
-                "1. Reservar espacio",
-                "2. Consultar código de reserva",
-                "3. Modificar código de reserva",
-                "4. Realizar pago",
-                "5. Ver estado de pago",
-                "6. Ver mis estadísticas de fidelidad",
-                "7. Volver al menú principal"
-            };
-
-            MostrarMenuConMarco("MENÚ DE USUARIO", opcionesUsuario);
-            string opcion = Console.ReadLine() ?? "";
+            Console.Clear();
+            Console.WriteLine("\n=== BIENVENIDO A ECOPARKING ===");
+            Console.WriteLine("1. Administrador");
+            Console.WriteLine("2. Usuario");
+            Console.WriteLine("3. Salir del sistema");
+            Console.Write("Seleccione una opción: ");
+            string opcion = Console.ReadLine()?.Trim();
 
             switch (opcion)
             {
                 case "1":
-                    Console.Write("¿Cuántas horas vas a reservar?: ");
-                    if (int.TryParse(Console.ReadLine(), out int horas) && horas > 0)
-                    {
-                        espacioSeleccionado.ReservarEspacio();
-                        await espacioSeleccionado.GuardarEstadoEnBaseDeDatosAsync();
-
-                        // Registrar en estadísticas
-                        var estadistica = await EstadisticaVehicular.ObtenerPorTipoVehiculoAsync(espacioSeleccionado.TipoVehiculo);
-                        estadistica.RegistrarUso();
-                        await estadistica.GuardarEnBaseDeDatosAsync();
-
-                        DateTime horaIngreso = DateTime.Now;
-                        horaSalidaProgramada = horaIngreso.AddHours(horas);
-                        Console.WriteLine($"✅ Reserva exitosa. Salida programada a las {horaSalidaProgramada:HH:mm}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("❌ Horas inválidas.");
-                    }
+                    await MenuTipoAccesoAsync("Administrador");
                     break;
-
                 case "2":
-                    Console.WriteLine($"🔑 Código de reserva: {espacioSeleccionado.GetCodigoReserva()}");
+                    await MenuTipoAccesoAsync("Usuario");
                     break;
-
                 case "3":
-                    Console.Write("Nuevo código: ");
-                    string? nuevoCodigo = Console.ReadLine();
-                    if (!string.IsNullOrEmpty(nuevoCodigo))
-                    {
-                        espacioSeleccionado.SetCodigoReserva(nuevoCodigo);
-                        await espacioSeleccionado.GuardarEstadoEnBaseDeDatosAsync();
-                        Console.WriteLine("✅ Código actualizado correctamente");
-                    }
-                    else
-                    {
-                        Console.WriteLine("❌ Código inválido.");
-                    }
+                    salir = true;
+                    Console.WriteLine("👋 ¡Hasta pronto!");
                     break;
-
-                case "4":
-                    try
-                    {
-                        // Obtener método de pago y monto
-                        Console.WriteLine("💳 Seleccione método de pago:");
-                        Console.WriteLine("1. Tarjeta de crédito/débito");
-                        Console.WriteLine("2. Efectivo");
-                        Console.Write("Opción: ");
-
-                        string metodoPago = Console.ReadLine() == "1" ? "Tarjeta" : "Efectivo";
-
-                        Console.Write("¿Cuántas horas estuviste estacionado?: ");
-                        if (int.TryParse(Console.ReadLine(), out int horasEstacionado) && horasEstacionado > 0)
-                        {
-                            decimal montoPagado = espacioSeleccionado.TarifaPorHora * horasEstacionado;
-
-                            // ✅ Aplicar descuento por fidelidad
-                            var fidelidad = await Fidelidad.ObtenerPorUsuarioAsync(usuario.Nombre, usuario.Correo);
-                            decimal montoFinal = await fidelidad.VerificarYAplicarDescuentoAsync(montoPagado);
-
-                            Console.WriteLine($"💰 Monto a pagar: ${montoFinal:F2}");
-                            if (montoFinal < montoPagado)
-                            {
-                                Console.WriteLine($"🎁 Descuento aplicado: ${montoPagado - montoFinal:F2}");
-                            }
-
-                            Console.Write("Confirmar pago (s/n): ");
-
-                            if (Console.ReadLine()?.ToLower() == "s")
-                            {
-                                // ✅ CORRECCIÓN: Marcar el pago como realizado
-                                espacioSeleccionado.PagoRealizado = true;
-
-                                await espacioSeleccionado.GuardarEstadoEnBaseDeDatosAsync();
-
-                                // ✅ Registrar en ganancias
-                                await GananciasEcoParking.RegistrarPagoStaticAsync(
-                                    $"Pago parqueo - {espacioSeleccionado.Ubicacion}",
-                                    montoFinal,
-                                    metodoPago,
-                                    espacioSeleccionado.Ubicacion,
-                                    espacioSeleccionado.TipoVehiculo,
-                                    usuario.Nombre
-                                );
-
-                                // ✅ Registrar en fidelidad
-                                await fidelidad.RegistrarReservaAsync();
-
-                                // ✅ ENVÍO DE CORREO ELECTRÓNICO
-                                if (!string.IsNullOrEmpty(usuario.Correo))
-                                {
-                                    Console.WriteLine("📧 Enviando comprobante por correo...");
-                                    var correo = new Correo(
-                                        usuario.Correo,
-                                        usuario.Nombre,
-                                        metodoPago,
-                                        (double)montoFinal
-                                    );
-                                    correo.EnviarComprobante();
-                                }
-                                else
-                                {
-                                    Console.WriteLine("⚠ No se puede enviar correo: usuario no tiene correo registrado");
-                                }
-
-                                Console.WriteLine("✅ Pago realizado exitosamente");
-
-                                // Generar citación si aplica
-                                if (DateTime.Now > horaSalidaProgramada)
-                                {
-                                    await CitacionParqueo.GenerarAsync(usuario, espacioSeleccionado, horaSalidaProgramada);
-                                }
-
-                                // Opción de dejar reseña
-                                Console.Write("\n⭐ ¿Deseas dejar una reseña para el parqueo? (s/n): ");
-                                if (Console.ReadLine()?.ToLower() == "s")
-                                {
-                                    Console.Write("Puntuación (1-5): ");
-                                    if (int.TryParse(Console.ReadLine(), out int puntuacion) && puntuacion >= 1 && puntuacion <= 5)
-                                    {
-                                        Console.Write("Comentario: ");
-                                        string? comentario = Console.ReadLine();
-
-                                        var resena = new ReseñaParqueo
-                                        {
-                                            IdParqueo = espacioSeleccionado.Ubicacion,
-                                            Usuario = usuario.Nombre,
-                                            Puntuacion = puntuacion,
-                                            Comentario = comentario ?? "",
-                                            Fecha = DateTime.Now
-                                        };
-
-                                        await ReseñaParqueo.GuardarAsync(resena);
-                                        Console.WriteLine("¡Gracias por tu reseña!");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("❌ Puntuación inválida.");
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("❌ Pago cancelado.");
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("❌ Horas inválidas.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"❌ Error en el proceso de pago: {ex.Message}");
-                    }
-                    break;
-
-                case "5":
-                    Console.WriteLine($"📋 Estado de pago: {espacioSeleccionado.EstadoPago()}");
-                    break;
-
-                case "6":
-                    var fidelidadUsuario = await Fidelidad.ObtenerPorUsuarioAsync(usuario.Nombre, usuario.Correo);
-                    fidelidadUsuario.MostrarEstadisticas();
-                    break;
-
-                case "7":
-                    continuar = false;
-                    Console.WriteLine("↩ Volviendo al menú principal...");
-                    break;
-
                 default:
                     Console.WriteLine("❌ Opción inválida.");
+                    await PresionarParaContinuar();
                     break;
             }
         }
     }
 
-    static async Task EjecutarAdministradorAsync(Administrador admin, List<EcoParking> parqueos)
+    // MÉTODO PARA VERIFICACIONES SILENCIOSAS
+    private static async Task VerificacionesSilenciosasAsync()
     {
-        Console.WriteLine($"\n👨‍💼 Bienvenido administrador: {admin.Nombre}");
-        bool continuar = true;
-
-        while (continuar)
+        try
         {
-            string[] opcionesAdmin = {
-                "1. Cambiar disponibilidad de parqueo",
-                "2. Actualizar tarifa de parqueo",
-                "3. Mostrar datos del administrador",
-                "4. Ver estadísticas de uso vehicular",
-                "5. Ver reporte de ganancias",
-                "6. Ver historial de entradas",
-                "7. Mostrar lista de usuarios registrados",
-                "8. Ver citaciones por exceso de tiempo",
-                "9. Ver programa de fidelidad",
-                "10. Volver al menú principal"
+            using var context = new EcoParkingContext();
+            await context.Database.EnsureCreatedAsync();
+
+            var sqlCommands = new[]
+            {
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Fidelidad' AND COLUMN_NAME = 'ReservasRealizadas') BEGIN ALTER TABLE Fidelidad ADD ReservasRealizadas INT NOT NULL DEFAULT 0 END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Fidelidad' AND COLUMN_NAME = 'NivelFidelidad') BEGIN ALTER TABLE Fidelidad ADD NivelFidelidad NVARCHAR(50) NOT NULL DEFAULT 'Bronce' END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Fidelidad' AND COLUMN_NAME = 'DescuentoAplicado') BEGIN ALTER TABLE Fidelidad ADD DescuentoAplicado DECIMAL(5,2) NOT NULL DEFAULT 0 END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Citaciones' AND COLUMN_NAME = 'Motivo') BEGIN ALTER TABLE Citaciones ADD Motivo NVARCHAR(200) NOT NULL DEFAULT 'Tiempo excedido' END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Citaciones' AND COLUMN_NAME = 'MontoMulta') BEGIN ALTER TABLE Citaciones ADD MontoMulta DECIMAL(10,2) NOT NULL DEFAULT 0 END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Citaciones' AND COLUMN_NAME = 'Pagada') BEGIN ALTER TABLE Citaciones ADD Pagada BIT NOT NULL DEFAULT 0 END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Citaciones' AND COLUMN_NAME = 'HoraInicioReserva') BEGIN ALTER TABLE Citaciones ADD HoraInicioReserva DATETIME2 NOT NULL DEFAULT GETDATE() END",
+                @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Citaciones' AND COLUMN_NAME = 'MinutosExcedidos') BEGIN ALTER TABLE Citaciones ADD MinutosExcedidos INT NOT NULL DEFAULT 0 END"
             };
 
-            MostrarMenuConMarco("MENÚ DE ADMINISTRADOR", opcionesAdmin);
-            string opcion = Console.ReadLine() ?? "";
+            foreach (var sql in sqlCommands)
+            {
+                try { await context.Database.ExecuteSqlRawAsync(sql); } catch { }
+            }
+
+            if (!await context.Administradores.AnyAsync())
+            {
+                var admin = new Administrador("Admin Principal", "admin123", "admin123");
+                context.Administradores.Add(admin);
+                await context.SaveChangesAsync();
+            }
+
+            if (!await context.Parqueos.AnyAsync())
+            {
+                var parqueos = new[]
+                {
+                    new EcoParking("Guayaquil-Centro", "Auto", 50, 1.50m, "GYE123"),
+                    new EcoParking("Guayaquil-Norte", "Moto", 30, 1.00m, "GYN456"),
+                    new EcoParking("Samborondón", "Camioneta", 20, 2.00m, "SAM789")
+                };
+                context.Parqueos.AddRange(parqueos);
+                await context.SaveChangesAsync();
+            }
+        }
+        catch { }
+    }
+
+    // MÉTODO: MENÚ DE REGISTRO/LOGIN
+    static async Task MenuTipoAccesoAsync(string tipoUsuario)
+    {
+        while (true)
+        {
+            Console.Clear();
+            Console.WriteLine($"\n=== {tipoUsuario.ToUpper()} ===");
+            Console.WriteLine("1. Registrarse");
+            Console.WriteLine("2. Iniciar sesión");
+            Console.WriteLine("3. Volver al menú principal");
+            Console.Write("Seleccione una opción: ");
+            string opcion = Console.ReadLine()?.Trim();
 
             switch (opcion)
             {
                 case "1":
-                    MostrarParqueos(parqueos);
-                    Console.Write("Seleccione el parqueo a modificar: ");
-                    if (int.TryParse(Console.ReadLine(), out int idx) && idx >= 1 && idx <= parqueos.Count)
+                    if (tipoUsuario == "Administrador")
                     {
-                        Console.Write("Nuevo estado (true = disponible, false = reservado): ");
-                        if (bool.TryParse(Console.ReadLine(), out bool nuevoEstado))
+                        using var context = new EcoParkingContext();
+                        if (await context.Administradores.AnyAsync())
                         {
-                            admin.CambiarDisponibilidad(parqueos[idx - 1], nuevoEstado);
-                            await parqueos[idx - 1].GuardarEstadoEnBaseDeDatosAsync();
-                            Console.WriteLine("✅ Disponibilidad actualizada");
+                            Console.WriteLine("❌ Solo puede haber un administrador. Contacte al existente.");
+                            await PresionarParaContinuar();
                         }
                         else
                         {
-                            Console.WriteLine("❌ Estado inválido.");
+                            await RegistrarAdministradorAsync();
                         }
                     }
                     else
                     {
-                        Console.WriteLine("❌ Selección inválida.");
+                        await Usuario.RegistrarNuevoUsuarioAsync();
+                        await PresionarParaContinuar();
                     }
                     break;
-
                 case "2":
-                    MostrarParqueos(parqueos);
-                    Console.Write("Seleccione el parqueo a modificar: ");
-                    if (int.TryParse(Console.ReadLine(), out int tIdx) && tIdx >= 1 && tIdx <= parqueos.Count)
+                    if (tipoUsuario == "Administrador")
                     {
-                        Console.Write("Nueva tarifa por hora: ");
-                        if (decimal.TryParse(Console.ReadLine(), out decimal nuevaTarifa) && nuevaTarifa > 0)
-                        {
-                            admin.ActualizarTarifa(parqueos[tIdx - 1], nuevaTarifa);
-                            await parqueos[tIdx - 1].GuardarEstadoEnBaseDeDatosAsync();
-                            Console.WriteLine("✅ Tarifa actualizada");
-                        }
+                        var admin = await Administrador.IniciarSesionEFAsync();
+                        if (admin != null)
+                            await MenuAdministradorAsync(admin);
                         else
-                        {
-                            Console.WriteLine("❌ Tarifa inválida.");
-                        }
+                            await PresionarParaContinuar();
                     }
                     else
                     {
-                        Console.WriteLine("❌ Selección inválida.");
+                        var usuario = await Usuario.IniciarSesionAsync();
+                        if (usuario != null)
+                            await MenuUsuarioAsync(usuario);
+                        else
+                            await PresionarParaContinuar();
                     }
                     break;
-
                 case "3":
-                    admin.MostrarDatos();
-                    break;
-
-                case "4":
-                    await MostrarEstadisticasVehicularesAsync();
-                    break;
-
-                case "5":
-                    await GananciasEcoParking.MostrarResumenAsync();
-                    break;
-
-                case "6":
-                    await FlujoPersonas.MostrarHistorialAsync();
-                    break;
-
-                case "7":
-                    await MostrarUsuariosRegistradosAsync();
-                    break;
-
-                case "8":
-                    await MostrarCitacionesAsync();
-                    break;
-
-                case "9":
-                    await MostrarProgramaFidelidadAsync();
-                    break;
-
-                case "10":
-                    continuar = false;
-                    Console.WriteLine("↩ Volviendo al menú principal...");
-                    break;
-
+                    return;
                 default:
-                    Console.WriteLine("❌ Opción no válida.");
+                    Console.WriteLine("❌ Opción inválida.");
+                    await PresionarParaContinuar();
                     break;
             }
-
-            Console.WriteLine("\nPresiona ENTER para continuar...");
-            Console.ReadLine();
         }
     }
 
-    // =================== MÉTODOS AUXILIARES ===================
-
-    static async Task MostrarUsuariosRegistradosAsync()
+    // MÉTODO: REGISTRAR ADMINISTRADOR
+    static async Task RegistrarAdministradorAsync()
     {
-        Console.WriteLine("\n--- USUARIOS REGISTRADOS ---");
+        Console.WriteLine("\n=== REGISTRO DE ADMINISTRADOR ===");
+        Console.Write("Nombre completo: ");
+        string nombre = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("Identificación: ");
+        string identificacion = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("Contraseña: ");
+        string contraseña = Console.ReadLine()?.Trim() ?? "";
+
+        if (string.IsNullOrEmpty(nombre) || string.IsNullOrEmpty(identificacion) || string.IsNullOrEmpty(contraseña))
+        {
+            Console.WriteLine("❌ Todos los campos son obligatorios.");
+            await PresionarParaContinuar();
+            return;
+        }
 
         try
         {
             using var context = new EcoParkingContext();
-            var usuarios = await context.Usuarios.ToListAsync();
-
-            if (usuarios.Count == 0)
+            bool existe = await context.Administradores.AnyAsync(a => a.Identificacion == identificacion);
+            if (existe)
             {
-                Console.WriteLine("No hay usuarios registrados.");
+                Console.WriteLine("❌ Ya existe un administrador con esa identificación.");
+                await PresionarParaContinuar();
                 return;
             }
 
-            foreach (var u in usuarios)
-            {
-                Console.WriteLine($"👤 Nombre: {u.Nombre} | Cédula: {u.Cedula} | Correo: {u.Correo}");
-            }
+            var nuevoAdmin = new Administrador(nombre, identificacion, contraseña);
+            context.Administradores.Add(nuevoAdmin);
+            await context.SaveChangesAsync();
+            Console.WriteLine("✅ Administrador registrado exitosamente!");
+            await PresionarParaContinuar();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al cargar usuarios: {ex.Message}");
+            Console.WriteLine($"❌ Error al registrar administrador: {ex.Message}");
+            await PresionarParaContinuar();
         }
     }
 
-    static async Task<Administrador?> ObtenerAdministradorAsync()
+    // MÉTODO AUXILIAR PARA PRESIONAR TECLA
+    private static async Task PresionarParaContinuar()
     {
-        string[] opcionesAdmin = { "1. Registrar nuevo administrador", "2. Iniciar sesión" };
-        MostrarMenuConMarco("ACCESO ADMINISTRADOR", opcionesAdmin);
-        string opcion = Console.ReadLine() ?? "";
+        Console.WriteLine("\nPresione cualquier tecla para continuar...");
+        Console.ReadKey();
+    }
 
-        if (opcion == "1")
+    // MÉTODO PARA MOSTRAR MENÚ CON MARCO
+    public static void MostrarMenuConMarco(string titulo, string[] opciones)
+    {
+        int ancho = 50;
+        string borde = new string('═', ancho);
+        Console.WriteLine($"\n╔{borde}╗");
+        Console.WriteLine($"║{titulo.PadLeft((ancho + titulo.Length) / 2).PadRight(ancho)}║");
+        Console.WriteLine($"╠{borde}╣");
+        for (int i = 0; i < opciones.Length; i++)
         {
-            return await Administrador.RegistrarAdministradorEFAsync();
+            string texto = $" {i + 1}. {opciones[i]}";
+            Console.WriteLine($"║{texto.PadRight(ancho)}║");
         }
-        else if (opcion == "2")
+        Console.WriteLine($"╚{borde}╝");
+        Console.Write("Seleccione una opción: ");
+    }
+
+    static async Task MenuAdministradorAsync(Administrador admin)
+    {
+        while (true)
         {
-            return await Administrador.IniciarSesionEFAsync();
+            Console.Clear();
+            string[] opciones = {
+                "Ver parqueos", "Modificar cantidad disponible", "Actualizar tarifa",
+                "Ver estadísticas vehiculares", "Ver flujo de personas", "Ver ganancias",
+                "Ver reseñas", "Cerrar sesión"
+            };
+            MostrarMenuConMarco("MENÚ ADMINISTRADOR", opciones);
+            string opcion = Console.ReadLine()?.Trim();
+
+            switch (opcion)
+            {
+                case "1": await MostrarParqueosAsync(); await PresionarParaContinuar(); break;
+                case "2": await ModificarCantidadAsync(admin); await PresionarParaContinuar(); break;
+                case "3": await ActualizarTarifaAsync(admin); await PresionarParaContinuar(); break;
+                case "4": await MostrarEstadisticasVehicularesAsync(); await PresionarParaContinuar(); break;
+                case "5": await FlujoPersonas.MostrarHistorialAsync(); await PresionarParaContinuar(); break;
+                case "6": await GananciasEcoParking.MostrarResumenAsync(); await PresionarParaContinuar(); break;
+                case "7": await ReseñaParqueo.MostrarEstadisticasAsync(); await PresionarParaContinuar(); break;
+                case "8": Console.WriteLine("👋 Cerrando sesión de administrador..."); return;
+                default: Console.WriteLine("❌ Opción inválida."); await PresionarParaContinuar(); break;
+            }
+        }
+    }
+
+    static async Task MenuUsuarioAsync(Usuario usuario)
+    {
+        await FlujoPersonas.RegistrarEntradaStaticAsync(usuario.Nombre, "Usuario");
+        while (true)
+        {
+            Console.Clear();
+            string[] opciones = {
+                "Ver parqueos disponibles", "Reservar espacio", "Realizar pago",
+                "Dejar reseña", "Ver puntuación promedio", "Ver citaciones pendientes", "Cerrar sesión"
+            };
+            Usuario.MostrarMenuConMarco("MENÚ USUARIO", opciones);
+            string opcion = Console.ReadLine()?.Trim();
+
+            switch (opcion)
+            {
+                case "1": await MostrarParqueosDisponiblesAsync(); await PresionarParaContinuar(); break;
+                case "2": await ReservarEspacioAsync(usuario); await PresionarParaContinuar(); break;
+                case "3": await RealizarPagoAsync(usuario); await PresionarParaContinuar(); break;
+                case "4": await DejarReseñaAsync(usuario); await PresionarParaContinuar(); break;
+                case "5": await MostrarPromedioReseñasAsync(); await PresionarParaContinuar(); break;
+                case "6": await VerCitacionesPendientesAsync(usuario); await PresionarParaContinuar(); break;
+                case "7": Console.WriteLine("👋 Cerrando sesión de usuario..."); return;
+                default: Console.WriteLine("❌ Opción inválida."); await PresionarParaContinuar(); break;
+            }
+        }
+    }
+
+    // MÉTODO PARA MOSTRAR TODOS LOS PARQUEOS
+    static async Task MostrarParqueosAsync()
+    {
+        using var context = new EcoParkingContext();
+        var parqueos = await context.Parqueos.OrderBy(p => p.Ubicacion).ToListAsync();
+
+        if (!parqueos.Any())
+        {
+            Console.WriteLine("❌ No hay parqueos en el system.");
+            return;
+        }
+
+        Console.WriteLine("\n📍 TODOS LOS PARQUEOS:");
+        Console.WriteLine("==================================================");
+
+        foreach (var p in parqueos)
+        {
+            string estado = p.CantidadDisponible > 0 ? "✅ DISPONIBLE" : "❌ AGOTADO";
+            string icono = p.TipoVehiculo switch { "Auto" => "🚗", "Moto" => "🏍️", "Camioneta" => "🚙", _ => "🚦" };
+
+            Console.WriteLine($"{icono} {p.Ubicacion} ({p.TipoVehiculo})");
+            Console.WriteLine($"   Espacios: {p.CantidadDisponible} | Tarifa: ${p.TarifaPorHora:F2}/hora");
+            Console.WriteLine($"   Estado: {estado} | Código: {p.CodigoReserva}");
+
+            if (p.HoraReserva != null && !p.PagoRealizado)
+            {
+                Console.WriteLine($"   ⚠️  RESERVA ACTIVA - Hora fin: {p.HoraFinReserva:HH:mm}");
+            }
+            Console.WriteLine("--------------------------------------------------");
+        }
+        Console.WriteLine($"Total de parqueos: {parqueos.Count}");
+    }
+
+    // MÉTODO PARA MOSTRAR SOLO PARQUEOS DISPONIBLES
+    static async Task MostrarParqueosDisponiblesAsync()
+    {
+        using var context = new EcoParkingContext();
+        var parqueos = await context.Parqueos
+            .Where(p => p.CantidadDisponible > 0)
+            .OrderBy(p => p.Ubicacion)
+            .ToListAsync();
+
+        if (!parqueos.Any())
+        {
+            Console.WriteLine("❌ No hay parqueos disponibles en el system.");
+            return;
+        }
+
+        Console.WriteLine("\n📍 PARQUEOS DISPONIBLES:");
+        Console.WriteLine("==================================================");
+
+        foreach (var p in parqueos)
+        {
+            string icono = p.TipoVehiculo switch { "Auto" => "🚗", "Moto" => "🏍️", "Camioneta" => "🚙", _ => "🚦" };
+
+            Console.WriteLine($"{icono} {p.Ubicacion} ({p.TipoVehiculo})");
+            Console.WriteLine($"   Espacios: {p.CantidadDisponible} | Tarifa: ${p.TarifaPorHora:F2}/hora");
+            Console.WriteLine($"   Código: {p.CodigoReserva}");
+            Console.WriteLine("--------------------------------------------------");
+        }
+        Console.WriteLine($"Total de parqueos disponibles: {parqueos.Count}");
+    }
+
+    // MÉTODO PARA RESERVAR ESPACIO
+    static async Task ReservarEspacioAsync(Usuario usuario)
+    {
+        using var context = new EcoParkingContext();
+        var parqueos = await context.Parqueos
+            .Where(p => p.CantidadDisponible > 0)
+            .ToListAsync();
+
+        if (!parqueos.Any())
+        {
+            Console.WriteLine("❌ No hay parqueos disponibles para reservar.");
+            return;
+        }
+
+        Console.WriteLine("\nSeleccione parqueo para reservar:");
+        for (int i = 0; i < parqueos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {parqueos[i].Ubicacion} ({parqueos[i].TipoVehiculo}) - {parqueos[i].CantidadDisponible} espacios - ${parqueos[i].TarifaPorHora:F2}/hora");
+        }
+
+        Console.Write("Opción: ");
+        if (!int.TryParse(Console.ReadLine(), out int index) || index < 1 || index > parqueos.Count)
+        {
+            Console.WriteLine("❌ Selección inválida.");
+            return;
+        }
+
+        var seleccionado = parqueos[index - 1];
+
+        // Pedir tiempo de reserva
+        Console.WriteLine("\n⏰ TIEMPO DE RESERVA");
+        Console.WriteLine("1. Por horas");
+        Console.WriteLine("2. Por minutos");
+        Console.Write("Seleccione opción: ");
+        string tiempoOp = Console.ReadLine()?.Trim() ?? "";
+
+        TimeSpan tiempoReserva = TimeSpan.Zero;
+
+        if (tiempoOp == "1")
+        {
+            Console.Write("Ingrese número de horas: ");
+            if (int.TryParse(Console.ReadLine(), out int horas) && horas > 0)
+            {
+                tiempoReserva = TimeSpan.FromHours(horas);
+            }
+            else
+            {
+                Console.WriteLine("❌ Horas inválidas.");
+                return;
+            }
+        }
+        else if (tiempoOp == "2")
+        {
+            Console.Write("Ingrese número de minutos: ");
+            if (int.TryParse(Console.ReadLine(), out int minutos) && minutos > 0)
+            {
+                tiempoReserva = TimeSpan.FromMinutes(minutos);
+            }
+            else
+            {
+                Console.WriteLine("❌ Minutos inválidos.");
+                return;
+            }
         }
         else
         {
             Console.WriteLine("❌ Opción inválida.");
-            return null;
+            return;
         }
+
+        seleccionado.ReservarEspacio(tiempoReserva);
+        context.Parqueos.Update(seleccionado);
+        await context.SaveChangesAsync();
     }
 
-    static void MostrarParqueos(List<EcoParking> parqueos)
+    // MÉTODO PARA REALIZAR PAGO (ACTUALIZADO CON SISTEMA DE CITACIONES)
+    static async Task RealizarPagoAsync(Usuario usuario)
     {
-        Console.WriteLine("\n--- LISTA DE PARQUEOS ---");
+        using var context = new EcoParkingContext();
+
+        var todosParqueos = await context.Parqueos.ToListAsync();
+        var parqueos = todosParqueos.Where(p => p.HoraReserva != null && !p.PagoRealizado).ToList();
+
+        if (!parqueos.Any())
+        {
+            Console.WriteLine("❌ No hay reservas activas pendientes de pago.");
+            return;
+        }
+
+        Console.WriteLine("\nSeleccione reserva para pagar:");
         for (int i = 0; i < parqueos.Count; i++)
         {
-            var p = parqueos[i];
-            Console.WriteLine($"{i + 1}. 🅿️ Ubicación: {p.Ubicacion} | Tipo: {p.TipoVehiculo} | Disponible: {(p.Disponible ? "✅ Sí" : "❌ No")} | Tarifa: ${p.TarifaPorHora:F2}/hora");
+            var parqueo = parqueos[i];
+            var tiempoReservado = parqueo.HoraFinReserva.Value - parqueo.HoraReserva.Value;
+            Console.WriteLine($"{i + 1}. {parqueo.Ubicacion} ({parqueo.TipoVehiculo}) - Tiempo reservado: {tiempoReservado.TotalMinutes}min - Hora fin: {parqueo.HoraFinReserva:HH:mm}");
+        }
+
+        Console.Write("Opción: ");
+        if (!int.TryParse(Console.ReadLine(), out int index) || index < 1 || index > parqueos.Count)
+        {
+            Console.WriteLine("❌ Selección inválida.");
+            return;
+        }
+
+        var seleccionado = parqueos[index - 1];
+        var (monto, metodoPago, infoTarjeta) = seleccionado.MenuDePago();
+
+        if (monto > 0)
+        {
+            // Calcular tiempo reservado y tiempo pagado
+            TimeSpan tiempoReservado = seleccionado.HoraFinReserva.Value - seleccionado.HoraReserva.Value;
+            TimeSpan tiempoPagado = TimeSpan.FromHours((double)(monto / seleccionado.TarifaPorHora));
+
+            // Aplicar descuento de fidelidad
+            var fidelidad = await Fidelidad.ObtenerPorUsuarioAsync(usuario.Nombre, usuario.Correo);
+            decimal montoFinal = await fidelidad.VerificarYAplicarDescuentoAsync(monto);
+
+            // Registrar pago en ganancias (con IVA)
+            await GananciasEcoParking.RegistrarPagoStaticAsync(
+                "Pago de parqueo",
+                montoFinal * 1.12m, // Incluir IVA
+                metodoPago.ToLower(),
+                seleccionado.Ubicacion,
+                seleccionado.TipoVehiculo,
+                usuario.Nombre
+            );
+
+            // Enviar comprobante
+            var correo = new Correo(usuario.Correo, usuario.Nombre, metodoPago, (double)montoFinal);
+            correo.EnviarComprobante();
+
+            // Actualizar fidelidad
+            await fidelidad.RegistrarReservaAsync();
+
+            // Actualizar estadísticas vehiculares
+            await EstadisticaVehicular.ActualizarEstadisticasPorPagoAsync(seleccionado.TipoVehiculo, montoFinal);
+
+            // VERIFICAR Y GENERAR CITACIÓN SI SE PAGÓ MENOS TIEMPO DEL RESERVADO
+            if (tiempoPagado < tiempoReservado)
+            {
+                Console.WriteLine($"\n⚠️  ATENCIÓN: Has pagado {tiempoPagado.TotalMinutes} minutos de {tiempoReservado.TotalMinutes} minutos reservados.");
+                Console.WriteLine("📋 Se generará una citación por el tiempo excedido.");
+
+                await CitacionParqueo.GenerarPorTiempoExcedidoAsync(
+                    usuario,
+                    seleccionado,
+                    tiempoReservado,
+                    tiempoPagado
+                );
+
+                await PresionarParaContinuar();
+            }
+
+            // Marcar como pagado y liberar espacio
+            seleccionado.PagoRealizado = true;
+            seleccionado.LiberarEspacio();
+
+            // Actualizar en base de datos
+            using var contextUpdate = new EcoParkingContext();
+            contextUpdate.Parqueos.Update(seleccionado);
+            await contextUpdate.SaveChangesAsync();
+
+            Console.WriteLine("✅ Pago registrado y fidelidad actualizada.");
         }
     }
 
-    static async Task MostrarCitacionesAsync()
+    // MÉTODO PARA VER CITACIONES PENDIENTES
+    static async Task VerCitacionesPendientesAsync(Usuario usuario)
     {
-        Console.WriteLine("\n--- LISTA DE CITACIONES ---");
+        var citaciones = await CitacionParqueo.ObtenerCitacionesPendientesAsync(usuario.Nombre);
 
-        try
+        if (!citaciones.Any())
         {
-            using var context = new EcoParkingContext();
-            var citaciones = await context.Citaciones.ToListAsync();
+            Console.WriteLine("✅ No tienes citaciones pendientes.");
+            return;
+        }
 
-            if (citaciones.Count == 0)
+        Console.WriteLine("\n⚠️  CITACIONES PENDIENTES DE PAGO:");
+        Console.WriteLine("==========================================");
+
+        decimal totalMultas = 0;
+
+        foreach (var citacion in citaciones)
+        {
+            Console.WriteLine($"📋 Citación #{citacion.Id}");
+            Console.WriteLine($"   🚗 Vehículo: {citacion.VehiculoTipo}");
+            Console.WriteLine($"   📍 Código: {citacion.CodigoReserva}");
+            Console.WriteLine($"   ⏰ Tiempo excedido: {citacion.MinutosExcedidos} minutos");
+            Console.WriteLine($"   💰 Multa: ${citacion.MontoMulta:F2}");
+            Console.WriteLine($"   📅 Fecha: {citacion.HoraInicioReserva:dd/MM/yyyy}");
+            Console.WriteLine($"   📝 Motivo: {citacion.Motivo}");
+            Console.WriteLine("   ------------------------------------");
+
+            totalMultas += citacion.MontoMulta;
+        }
+
+        Console.WriteLine($"💰 TOTAL MULTAS PENDIENTES: ${totalMultas:F2}");
+        Console.WriteLine("==========================================");
+
+        // Opción para pagar multas
+        Console.Write("\n¿Deseas pagar alguna multa? (s/n): ");
+        if (Console.ReadLine()?.Trim().ToLower() == "s")
+        {
+            Console.Write("Ingresa el número de citación a pagar: ");
+            if (int.TryParse(Console.ReadLine(), out int idCitacion))
             {
-                Console.WriteLine("✅ No hay citaciones registradas.");
+                var citacion = citaciones.FirstOrDefault(c => c.Id == idCitacion);
+                if (citacion != null)
+                {
+                    Console.WriteLine($"\n💳 PAGANDO MULTA #{citacion.Id}");
+                    Console.WriteLine($"Monto a pagar: ${citacion.MontoMulta:F2}");
+                    Console.Write("¿Confirmar pago? (s/n): ");
+
+                    if (Console.ReadLine()?.Trim().ToLower() == "s")
+                    {
+                        // Registrar pago en ganancias (con IVA)
+                        decimal montoConIva = citacion.MontoMulta * 1.12m;
+                        await GananciasEcoParking.RegistrarPagoStaticAsync(
+                            "Pago de multa",
+                            montoConIva,
+                            "multa",
+                            citacion.VehiculoTipo + " Parking",
+                            citacion.VehiculoTipo,
+                            usuario.Nombre
+                        );
+
+                        // Marcar como pagada y enviar factura
+                        await citacion.MarcarComoPagadaAsync();
+                        Console.WriteLine("✅ Multa pagada correctamente. Factura enviada por correo.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("❌ Pago cancelado.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("❌ Citación no encontrada.");
+                }
             }
             else
             {
-                foreach (var c in citaciones)
-                {
-                    Console.WriteLine($"🚨 Usuario: {c.Usuario} | Vehículo: {c.VehiculoTipo} | Monto: ${c.MontoAPagar:F2} | Fecha: {c.HoraSalidaReal:yyyy-MM-dd HH:mm}");
-                }
+                Console.WriteLine("❌ Número de citación inválido.");
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error al cargar citaciones: {ex.Message}");
         }
     }
 
+    static async Task ModificarCantidadAsync(Administrador admin)
+    {
+        using var context = new EcoParkingContext();
+        var parqueos = await context.Parqueos.ToListAsync();
+        Console.WriteLine("\nSeleccione el parqueo a modificar:");
+        for (int i = 0; i < parqueos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {parqueos[i].Ubicacion} ({parqueos[i].TipoVehiculo}) - {parqueos[i].CantidadDisponible} espacios");
+        }
+        Console.Write("Opción: ");
+        if (!int.TryParse(Console.ReadLine(), out int index) || index < 1 || index > parqueos.Count)
+        {
+            Console.WriteLine("❌ Selección inválida."); return;
+        }
+        var seleccionado = parqueos[index - 1];
+        Console.Write($"Ingrese nueva cantidad de espacios para {seleccionado.Ubicacion}: ");
+        if (!int.TryParse(Console.ReadLine(), out int nuevaCantidad) || nuevaCantidad < 0)
+        {
+            Console.WriteLine("❌ Cantidad inválida."); return;
+        }
+        admin.ModificarCantidadDisponible(seleccionado, nuevaCantidad);
+        context.Parqueos.Update(seleccionado);
+        await context.SaveChangesAsync();
+    }
+
+    static async Task ActualizarTarifaAsync(Administrador admin)
+    {
+        using var context = new EcoParkingContext();
+        var parqueos = await context.Parqueos.ToListAsync();
+        Console.WriteLine("\nSeleccione el parqueo para actualizar tarifa:");
+        for (int i = 0; i < parqueos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {parqueos[i].Ubicacion} ({parqueos[i].TipoVehiculo}) - Tarifa actual: ${parqueos[i].TarifaPorHora:F2}");
+        }
+        Console.Write("Opción: ");
+        if (!int.TryParse(Console.ReadLine(), out int index) || index < 1 || index > parqueos.Count)
+        {
+            Console.WriteLine("❌ Selección inválida."); return;
+        }
+        var seleccionado = parqueos[index - 1];
+        Console.Write($"Ingrese nueva tarifa para {seleccionado.Ubicacion}: ");
+        if (!decimal.TryParse(Console.ReadLine(), out decimal nuevaTarifa) || nuevaTarifa <= 0)
+        {
+            Console.WriteLine("❌ Tarifa inválida."); return;
+        }
+        admin.ActualizarTarifa(seleccionado, nuevaTarifa);
+        context.Parqueos.Update(seleccionado);
+        await context.SaveChangesAsync();
+    }
+
+    static async Task DejarReseñaAsync(Usuario usuario)
+    {
+        Console.Write("\nIngrese ID del parqueo: ");
+        string idParqueo = Console.ReadLine()?.Trim() ?? "";
+        Console.Write("Puntuación (1-5): ");
+        if (!int.TryParse(Console.ReadLine(), out int puntuacion) || puntuacion < 1 || puntuacion > 5)
+        {
+            Console.WriteLine("❌ Puntuación inválida."); return;
+        }
+        Console.Write("Comentario (opcional): ");
+        string comentario = Console.ReadLine()?.Trim() ?? "";
+        var reseña = new ReseñaParqueo(idParqueo, usuario.Nombre, puntuacion, comentario);
+        await ReseñaParqueo.GuardarAsync(reseña);
+        Console.WriteLine("✅ Reseña registrada correctamente.");
+    }
+
+    static async Task MostrarPromedioReseñasAsync()
+    {
+        Console.Write("\nIngrese ID del parqueo para ver promedio de puntuación: ");
+        string idParqueo = Console.ReadLine()?.Trim() ?? "";
+        decimal promedio = await ReseñaParqueo.ObtenerPuntuacionPromedioAsync(idParqueo);
+        Console.WriteLine($"⭐ Puntuación promedio para {idParqueo}: {promedio}/5");
+    }
+
+    // MÉTODO PARA MOSTRAR ESTADÍSTICAS VEHICULARES
     static async Task MostrarEstadisticasVehicularesAsync()
     {
         try
         {
             var estadisticas = await EstadisticaVehicular.CargarDesdeBaseDeDatosAsync();
 
-            Console.WriteLine("\n🚗 ESTADÍSTICAS VEHICULARES");
-            Console.WriteLine("========================");
-
-            foreach (var stat in estadisticas)
+            if (!estadisticas.Any())
             {
-                stat.MostrarResumen();
+                Console.WriteLine("❌ No hay estadísticas vehiculares disponibles.");
+                return;
             }
+
+            Console.WriteLine("\n📊 ESTADÍSTICAS VEHICULARES COMPLETAS");
+            Console.WriteLine("==========================================");
+
+            foreach (var estadistica in estadisticas)
+            {
+                estadistica.MostrarResumen();
+            }
+
+            // Mostrar totales generales
+            int totalUsos = estadisticas.Sum(e => e.CantidadUsos);
+            decimal totalRecaudado = estadisticas.Sum(e => e.TotalRecaudado);
+
+            Console.WriteLine("\n💰 TOTALES GENERALES:");
+            Console.WriteLine($"📈 Total de usos: {totalUsos}");
+            Console.WriteLine($"💰 Total recaudado: ${totalRecaudado:F2}");
+            Console.WriteLine("==========================================");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error mostrando estadísticas: {ex.Message}");
         }
-    }
-
-    static async Task MostrarProgramaFidelidadAsync()
-    {
-        try
-        {
-            using var context = new EcoParkingContext();
-            var fidelidades = await context.Fidelidad.ToListAsync();
-
-            Console.WriteLine("\n⭐ PROGRAMA DE FIDELIDAD");
-            Console.WriteLine("======================");
-
-            if (!fidelidades.Any())
-            {
-                Console.WriteLine("No hay datos de fidelidad registrados.");
-                return;
-            }
-
-            foreach (var f in fidelidades.OrderByDescending(x => x.ReservasCompletadas))
-            {
-                Console.WriteLine($"👤 {f.NombreUsuario}: {f.ReservasCompletadas} reservas | Descuento: ${f.TotalDescuentoAplicado:F2}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error mostrando fidelidad: {ex.Message}");
-        }
-    }
-
-    static void MostrarMenuConMarco(string titulo, string[] opciones)
-    {
-        int anchoContenido = Math.Max(
-            opciones.Max(o => o.Length),
-            titulo.Length
-        ) + 4;
-
-        string bordeSuperior = "┌" + new string('─', anchoContenido + 2) + "┐";
-        string bordeInferior = "└" + new string('─', anchoContenido + 2) + "┘";
-        string bordeMedio = "├" + new string('─', anchoContenido + 2) + "┤";
-
-        Console.WriteLine();
-        Console.WriteLine(bordeSuperior);
-        Console.WriteLine($"│ {titulo.PadRight(anchoContenido)} │");
-        Console.WriteLine(bordeMedio);
-
-        foreach (var opcion in opciones)
-        {
-            Console.WriteLine($"│ {opcion.PadRight(anchoContenido)} │");
-        }
-
-        Console.WriteLine(bordeInferior);
-        Console.Write("→ Seleccione una opción: ");
     }
 }

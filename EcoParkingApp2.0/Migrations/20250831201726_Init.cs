@@ -37,9 +37,14 @@ namespace EcoParkingApp2._0.Migrations
                     Correo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     VehiculoTipo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CodigoReserva = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    HoraSalidaProg = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    HoraSalidaReal = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    MontoAPagar = table.Column<decimal>(type: "decimal(10,2)", nullable: false)
+                    Motivo = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    MontoMulta = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    Pagada = table.Column<bool>(type: "bit", nullable: false),
+                    HoraInicioReserva = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    HoraFinProgramada = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    HoraFinReal = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TarifaPorHora = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    MinutosExcedidos = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -71,7 +76,9 @@ namespace EcoParkingApp2._0.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     NombreUsuario = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CorreoUsuario = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ReservasCompletadas = table.Column<int>(type: "int", nullable: false),
+                    ReservasRealizadas = table.Column<int>(type: "int", nullable: false),
+                    NivelFidelidad = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    DescuentoAplicado = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
                     UltimaFechaBeneficio = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaUltimaReserva = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -126,10 +133,11 @@ namespace EcoParkingApp2._0.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Ubicacion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     TipoVehiculo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Disponible = table.Column<bool>(type: "bit", nullable: false),
+                    CantidadDisponible = table.Column<int>(type: "int", nullable: false),
                     TarifaPorHora = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
                     HoraReserva = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CodigoReserva = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    HoraFinReserva = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CodigoReserva = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PagoRealizado = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -161,7 +169,7 @@ namespace EcoParkingApp2._0.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Cedula = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Cedula = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Correo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Telefono = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
                 },

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,157 +22,72 @@ namespace EcoParkingApp
         [MaxLength(50)]
         public string TipoVehiculo { get; set; } = string.Empty;
 
-        public bool Disponible { get; set; }
+        [Required]
+        public int CantidadDisponible { get; set; }
 
         [Column(TypeName = "decimal(10,2)")]
         public decimal TarifaPorHora { get; set; }
 
         public DateTime? HoraReserva { get; set; }
+        public DateTime? HoraFinReserva { get; set; }
 
         [MaxLength(50)]
         public string CodigoReserva { get; set; } = string.Empty;
 
         public bool PagoRealizado { get; set; }
 
-        // Constructor sin parámetros para EF Core
+        // PROPIEDADES [NotMapped] PARA USO EN MEMORIA
+        [NotMapped]
+        public bool PuedeReservar => CantidadDisponible > 0;
+
+        [NotMapped]
+        public bool ReservaActiva => HoraReserva != null && !PagoRealizado;
+
+        [NotMapped]
+        public string EstadoDisponibilidad => CantidadDisponible > 0 ? $"{CantidadDisponible} espacios disponibles" : "Sin disponibilidad";
+
+        [NotMapped]
+        public string EstadoPago => PagoRealizado ? "Pagado" : "Pendiente";
+
         public EcoParking() { }
 
-        // Constructor con parámetros (SIN ID - lo genera la BD)
-        public EcoParking(string ubicacion, string tipoVehiculo, bool disponible, decimal tarifaPorHora, string codigoReserva)
+        public EcoParking(string ubicacion, string tipoVehiculo, int cantidadDisponible, decimal tarifaPorHora, string codigoReserva)
         {
             Ubicacion = ubicacion;
             TipoVehiculo = tipoVehiculo;
-            Disponible = disponible;
+            CantidadDisponible = cantidadDisponible;
             TarifaPorHora = tarifaPorHora;
             CodigoReserva = codigoReserva;
             PagoRealizado = false;
+            HoraReserva = null;
+            HoraFinReserva = null;
         }
 
-        public string GetCodigoReserva()
+        public void ReservarEspacio(TimeSpan tiempoReserva)
         {
-            Console.Write("Ingrese la ubicación para validar: ");
-            string ubicacionIngresada = Console.ReadLine();
-
-            if (ubicacionIngresada == this.Ubicacion)
+            if (CantidadDisponible > 0)
             {
-                return "**" + CodigoReserva?.Substring(CodigoReserva.Length - 3);
-            }
-            else
-            {
-                Console.WriteLine("Ubicación incorrecta. No se puede mostrar el código.");
-                return "Acceso denegado";
-            }
-        }
-
-        public void SetCodigoReserva(string nuevoCodigo)
-        {
-            Console.Write("Ingrese la ubicación para modificar el código: ");
-            string ubicacionIngresada = Console.ReadLine();
-
-            if (ubicacionIngresada == this.Ubicacion)
-            {
-                this.CodigoReserva = nuevoCodigo;
-                Console.WriteLine("Código actualizado correctamente.");
-            }
-            else
-            {
-                Console.WriteLine("Ubicación incorrecta. No autorizado.");
-            }
-        }
-
-        public void ReservarEspacio()
-        {
-            if (Disponible)
-            {
-                Disponible = false;
+                CantidadDisponible--;
                 HoraReserva = DateTime.Now;
-                Console.WriteLine("Espacio reservado exitosamente.");
+                HoraFinReserva = DateTime.Now.Add(tiempoReserva);
+                GetCodigoReserva();
+                Console.WriteLine($"✅ Espacio reservado exitosamente por {tiempoReserva.TotalHours} horas.");
+                Console.WriteLine($"⏰ Hora de fin: {HoraFinReserva:HH:mm}");
             }
             else
             {
-                Console.WriteLine("Este espacio ya está reservado.");
+                Console.WriteLine("❌ No hay espacios disponibles en esta ubicación.");
             }
             GuardarEstadoEnArchivo();
         }
 
-        public decimal MenuDePago()
+        public void LiberarEspacio()
         {
-            if (Disponible)
-            {
-                Console.WriteLine("Este espacio aún no ha sido reservado. Por favor, reserva primero.");
-                return 0;
-            }
-
-            if (PagoRealizado)
-            {
-                Console.WriteLine("El pago ya ha sido realizado para esta reserva.");
-                return 0;
-            }
-
-            Console.WriteLine("\n=== MENÚ DE PAGO ECO PARKING ===");
-
-            Console.Write("Nombre completo: ");
-            string nombre = Console.ReadLine();
-
-            Console.Write("Número de cédula: ");
-            string cedula = Console.ReadLine();
-
-            Console.Write("¿Cuántas horas desea pagar? ");
-            if (!decimal.TryParse(Console.ReadLine(), out decimal horas) || horas <= 0)
-            {
-                Console.WriteLine("Cantidad de horas inválida.");
-                return 0;
-            }
-
-            Console.WriteLine("\nMétodo de pago:");
-            Console.WriteLine("1. Tarjeta");
-            Console.WriteLine("2. Efectivo");
-            Console.Write("Opción: ");
-            string metodoPago = Console.ReadLine();
-
-            string metodo;
-            decimal total = TarifaPorHora * horas;
-
-            if (metodoPago == "1")
-            {
-                metodo = "tarjeta";
-
-                Console.Write("\nNúmero de tarjeta: ");
-                string numeroTarjeta = Console.ReadLine();
-
-                Console.Write("Fecha de expiración (MM/AA): ");
-                string fechaExp = Console.ReadLine();
-
-                Console.Write("CVV: ");
-                string cvv = Console.ReadLine();
-
-                Console.WriteLine($"\nProcesando pago de ${total:F2} con tarjeta...");
-            }
-            else if (metodoPago == "2")
-            {
-                metodo = "efectivo";
-                Console.WriteLine($"\nProcesando pago de ${total:F2} en efectivo...");
-            }
-            else
-            {
-                Console.WriteLine("Método de pago no válido.");
-                return 0;
-            }
-
-            PagoRealizado = true;
-            Console.WriteLine(" Pago realizado correctamente. ¡Gracias por usar EcoParking!");
-
-            Console.Write("\nIngrese su correo electrónico para recibir el comprobante: ");
-            string correoDestino = Console.ReadLine();
-
-            GuardarEstadoEnArchivo();
-
-            return total;
-        }
-
-        public string EstadoPago()
-        {
-            return PagoRealizado ? "Pagado" : "Pendiente";
+            CantidadDisponible++;
+            HoraReserva = null;
+            HoraFinReserva = null;
+            PagoRealizado = false;
+            Console.WriteLine("✅ Espacio liberado correctamente.");
         }
 
         public void GuardarEstadoEnArchivo()
@@ -183,8 +95,7 @@ namespace EcoParkingApp
             try
             {
                 string ruta = "parqueos.txt";
-                string estado = Disponible ? "Disponible" : "Reservado";
-                string datos = $"{DateTime.Now:yyyy-MM-dd HH:mm}|{Id}|{Ubicacion}|{TipoVehiculo}|{TarifaPorHora}|{estado}|{EstadoPago()}";
+                string datos = $"{DateTime.Now:yyyy-MM-dd HH:mm}|{Id}|{Ubicacion}|{TipoVehiculo}|{TarifaPorHora}|{CantidadDisponible}|{EstadoPago}";
                 File.AppendAllText(ruta, datos + Environment.NewLine);
             }
             catch (Exception ex)
@@ -198,37 +109,23 @@ namespace EcoParkingApp
             try
             {
                 using var context = new EcoParkingContext();
+                var existente = await context.Parqueos
+                    .FirstOrDefaultAsync(p => p.Ubicacion == Ubicacion && p.TipoVehiculo == TipoVehiculo);
 
-                // Verificar si ya existe en la base de datos por ubicación y tipo
-                var existingParqueo = await context.Parqueos
-                    .FirstOrDefaultAsync(p => p.Ubicacion == this.Ubicacion && p.TipoVehiculo == this.TipoVehiculo);
-
-                if (existingParqueo != null)
+                if (existente != null)
                 {
-                    // Actualizar solo las propiedades que cambian
-                    existingParqueo.Disponible = this.Disponible;
-                    existingParqueo.CodigoReserva = this.CodigoReserva;
-                    existingParqueo.PagoRealizado = this.PagoRealizado;
-                    existingParqueo.HoraReserva = this.HoraReserva;
-                    existingParqueo.TarifaPorHora = this.TarifaPorHora;
+                    existente.CantidadDisponible = CantidadDisponible;
+                    existente.CodigoReserva = CodigoReserva;
+                    existente.PagoRealizado = PagoRealizado;
+                    existente.HoraReserva = HoraReserva;
+                    existente.HoraFinReserva = HoraFinReserva;
+                    existente.TarifaPorHora = TarifaPorHora;
 
-                    context.Parqueos.Update(existingParqueo);
+                    context.Parqueos.Update(existente);
                 }
                 else
                 {
-                    // Crear NUEVO objeto sin el Id para insertar
-                    var nuevoParqueo = new EcoParking
-                    {
-                        Ubicacion = this.Ubicacion,
-                        TipoVehiculo = this.TipoVehiculo,
-                        Disponible = this.Disponible,
-                        TarifaPorHora = this.TarifaPorHora,
-                        CodigoReserva = this.CodigoReserva,
-                        PagoRealizado = this.PagoRealizado,
-                        HoraReserva = this.HoraReserva
-                    };
-
-                    context.Parqueos.Add(nuevoParqueo);
+                    context.Parqueos.Add(this);
                 }
 
                 await context.SaveChangesAsync();
@@ -237,45 +134,114 @@ namespace EcoParkingApp
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ Error al guardar estado en base de datos: {ex.Message}");
-
-                // Mostrar más detalles del error interno
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"❌ Error interno: {ex.InnerException.Message}");
-                }
-
-                // Fallback: guardar en archivo si la BD falla
-                Console.WriteLine("📁 Guardando en archivo como respaldo...");
                 GuardarEstadoEnArchivo();
             }
         }
 
-        // Método para debuggear
-        public void MostrarDatosParaDebug()
+        // MÉTODO MEJORADO PARA MENÚ DE PAGO
+        public (decimal monto, string metodoPago, string infoTarjeta) MenuDePago()
         {
-            Console.WriteLine($"DEBUG - Id: {Id}");
-            Console.WriteLine($"DEBUG - Ubicacion: {Ubicacion}");
-            Console.WriteLine($"DEBUG - TipoVehiculo: {TipoVehiculo}");
-            Console.WriteLine($"DEBUG - Disponible: {Disponible}");
-            Console.WriteLine($"DEBUG - TarifaPorHora: {TarifaPorHora}");
-            Console.WriteLine($"DEBUG - CodigoReserva: {CodigoReserva}");
-            Console.WriteLine($"DEBUG - PagoRealizado: {PagoRealizado}");
-            Console.WriteLine($"DEBUG - HoraReserva: {HoraReserva}");
+            if (HoraReserva == null)
+            {
+                Console.WriteLine("❌ No hay una reserva activa para este parqueo.");
+                return (0, "", "");
+            }
+
+            // Pedir tipo de pago
+            Console.WriteLine("\n💳 SELECCIÓN DE MÉTODO DE PAGO");
+            Console.WriteLine("1. Efectivo");
+            Console.WriteLine("2. Tarjeta de crédito/débito");
+            Console.Write("Seleccione método de pago: ");
+            string metodoPagoOp = Console.ReadLine()?.Trim() ?? "";
+
+            string metodoPago = "";
+            string infoTarjeta = "";
+
+            if (metodoPagoOp == "1")
+            {
+                metodoPago = "Efectivo";
+            }
+            else if (metodoPagoOp == "2")
+            {
+                metodoPago = "Tarjeta";
+                Console.Write("💳 Número de tarjeta: ");
+                string numeroTarjeta = Console.ReadLine()?.Trim() ?? "";
+                Console.Write("📅 Fecha de vencimiento (MM/YY): ");
+                string fechaVencimiento = Console.ReadLine()?.Trim() ?? "";
+                Console.Write("🔒 CVV: ");
+                string cvv = Console.ReadLine()?.Trim() ?? "";
+
+                infoTarjeta = $"Tarjeta: {numeroTarjeta}, Venc: {fechaVencimiento}, CVV: {cvv}";
+            }
+            else
+            {
+                Console.WriteLine("❌ Método de pago inválido.");
+                return (0, "", "");
+            }
+
+            // Pedir tiempo de estacionamiento
+            Console.WriteLine("\n⏰ TIEMPO DE ESTACIONAMIENTO");
+            Console.WriteLine("1. Por horas");
+            Console.WriteLine("2. Por minutos");
+            Console.Write("Seleccione opción: ");
+            string tiempoOp = Console.ReadLine()?.Trim() ?? "";
+
+            decimal total = 0;
+
+            if (tiempoOp == "1")
+            {
+                Console.Write("Ingrese número de horas: ");
+                if (decimal.TryParse(Console.ReadLine(), out decimal horas) && horas > 0)
+                {
+                    total = horas * TarifaPorHora;
+                }
+                else
+                {
+                    Console.WriteLine("❌ Horas inválidas.");
+                    return (0, "", "");
+                }
+            }
+            else if (tiempoOp == "2")
+            {
+                Console.Write("Ingrese número de minutos: ");
+                if (decimal.TryParse(Console.ReadLine(), out decimal minutos) && minutos > 0)
+                {
+                    decimal tarifaPorMinuto = TarifaPorHora / 60m;
+                    total = minutos * tarifaPorMinuto;
+                }
+                else
+                {
+                    Console.WriteLine("❌ Minutos inválidos.");
+                    return (0, "", "");
+                }
+            }
+            else
+            {
+                Console.WriteLine("❌ Opción inválida.");
+                return (0, "", "");
+            }
+
+            Console.WriteLine($"\n💵 DETALLE DE PAGO:");
+            Console.WriteLine($"📍 Ubicación: {Ubicacion}");
+            Console.WriteLine($"🚗 Tipo vehículo: {TipoVehiculo}");
+            Console.WriteLine($"💰 Tarifa: ${TarifaPorHora:F2}/hora");
+            Console.WriteLine($"💳 Método: {metodoPago}");
+            Console.WriteLine($"💵 Total a pagar: ${total:F2}");
+
+            Console.Write("\n¿Confirmar pago? (s/n): ");
+            string confirmacion = Console.ReadLine()?.Trim().ToLower() ?? "";
+
+            return confirmacion == "s" ? (total, metodoPago, infoTarjeta) : (0, "", "");
         }
 
-        // Método para verificar y crear tabla
-        public static async Task VerificarYCrearTablaAsync()
+        // MÉTODO PARA OBTENER CÓDIGO DE RESERVA
+        public string GetCodigoReserva()
         {
-            try
+            if (string.IsNullOrEmpty(CodigoReserva))
             {
-                using var context = new EcoParkingContext();
-                await context.Database.EnsureCreatedAsync();
-                Console.WriteLine("✅ Tabla de parqueos verificada/creada correctamente.");
+                CodigoReserva = $"RES-{DateTime.Now:yyyyMMddHHmmss}-{new Random().Next(1000, 9999)}";
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error al verificar/crear tabla: {ex.Message}");
-            }
+            return CodigoReserva;
         }
     }
 }

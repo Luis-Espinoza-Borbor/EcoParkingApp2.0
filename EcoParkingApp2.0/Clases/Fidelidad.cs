@@ -24,8 +24,17 @@ public class Fidelidad
     [MaxLength(150)]
     public string CorreoUsuario { get; set; } = string.Empty;
 
-    public int ReservasCompletadas { get; set; }
+    // CAMBIAR EL NOMBRE DE LA PROPIEDAD PARA QUE COINCIDA CON EL CONTEXT
+    public int ReservasRealizadas { get; set; } // ← Cambiado de ReservasCompletadas
 
+    // AÑADIR PROPIEDADES FALTANTES
+    [MaxLength(50)]
+    public string NivelFidelidad { get; set; } = "Bronce"; // ← Nueva propiedad
+
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal DescuentoAplicado { get; set; } // ← Nueva propiedad
+
+    // MANTENER PROPIEDADES EXISTENTES
     public DateTime UltimaFechaBeneficio { get; set; }
 
     public DateTime FechaRegistro { get; set; }
@@ -43,7 +52,9 @@ public class Fidelidad
     {
         NombreUsuario = nombreUsuario;
         CorreoUsuario = correoUsuario;
-        ReservasCompletadas = 0;
+        ReservasRealizadas = 0; // ← Cambiado
+        NivelFidelidad = "Bronce"; // ← Nueva
+        DescuentoAplicado = 0; // ← Nueva
         UltimaFechaBeneficio = DateTime.MinValue;
         FechaRegistro = DateTime.Now;
         TotalDescuentoAplicado = 0;
@@ -52,7 +63,7 @@ public class Fidelidad
     // Registra cada reserva completada
     public async Task RegistrarReservaAsync()
     {
-        ReservasCompletadas++;
+        ReservasRealizadas++; // ← Cambiado
         FechaUltimaReserva = DateTime.Now;
         await GuardarEnBaseDeDatosAsync();
     }
@@ -71,6 +82,9 @@ public class Fidelidad
             decimal montoConDescuento = montoOriginal * (1 - descuento);
             decimal descuentoAplicado = montoOriginal - montoConDescuento;
 
+            // Actualizar propiedades
+            this.DescuentoAplicado = descuentoAplicado; // ← Nueva
+            this.NivelFidelidad = CalcularNivelFidelidad(); // ← Nueva
             UltimaFechaBeneficio = DateTime.Now;
             TotalDescuentoAplicado += descuentoAplicado;
 
@@ -83,6 +97,18 @@ public class Fidelidad
         return montoOriginal;
     }
 
+    // Nuevo método para calcular nivel de fidelidad
+    private string CalcularNivelFidelidad()
+    {
+        return ReservasRealizadas switch
+        {
+            >= 50 => "Oro",
+            >= 25 => "Plata",
+            >= 10 => "Bronce",
+            _ => "Nuevo"
+        };
+    }
+
     // Obtiene reservas desde el último beneficio
     private async Task<int> ObtenerReservasDesdeUltimoBeneficioAsync()
     {
@@ -91,7 +117,7 @@ public class Fidelidad
         if (UltimaFechaBeneficio == DateTime.MinValue)
         {
             // Si nunca ha tenido beneficio, contar todas las reservas
-            return ReservasCompletadas;
+            return ReservasRealizadas; // ← Cambiado
         }
         else
         {
@@ -99,7 +125,7 @@ public class Fidelidad
             return await context.Fidelidad
                 .Where(f => f.NombreUsuario == this.NombreUsuario &&
                            f.FechaUltimaReserva > this.UltimaFechaBeneficio)
-                .SumAsync(f => f.ReservasCompletadas);
+                .SumAsync(f => f.ReservasRealizadas); // ← Cambiado
         }
     }
 
@@ -176,7 +202,9 @@ public class Fidelidad
             if (existingFidelidad != null)
             {
                 // Actualizar existente
-                existingFidelidad.ReservasCompletadas = this.ReservasCompletadas;
+                existingFidelidad.ReservasRealizadas = this.ReservasRealizadas; // ← Cambiado
+                existingFidelidad.NivelFidelidad = this.NivelFidelidad; // ← Nueva
+                existingFidelidad.DescuentoAplicado = this.DescuentoAplicado; // ← Nueva
                 existingFidelidad.UltimaFechaBeneficio = this.UltimaFechaBeneficio;
                 existingFidelidad.FechaUltimaReserva = this.FechaUltimaReserva;
                 existingFidelidad.TotalDescuentoAplicado = this.TotalDescuentoAplicado;
@@ -237,9 +265,11 @@ public class Fidelidad
     {
         Console.WriteLine("\n⭐ Programa de Fidelidad");
         Console.WriteLine($"👤 Usuario: {NombreUsuario}");
-        Console.WriteLine($"📊 Reservas completadas: {ReservasCompletadas}");
-        Console.WriteLine($"🎁 Descuento total aplicado: ${TotalDescuentoAplicado:F2}");
+        Console.WriteLine($"📊 Reservas realizadas: {ReservasRealizadas}"); // ← Cambiado
+        Console.WriteLine($"🏆 Nivel: {NivelFidelidad}"); // ← Nueva
+        Console.WriteLine($"🎁 Descuento aplicado: ${DescuentoAplicado:F2}"); // ← Nueva
+        Console.WriteLine($"💰 Descuento total aplicado: ${TotalDescuentoAplicado:F2}");
         Console.WriteLine($"📅 Último beneficio: {(UltimaFechaBeneficio == DateTime.MinValue ? "Nunca" : UltimaFechaBeneficio.ToString("dd/MM/yyyy"))}");
-        Console.WriteLine($"🔢 Próximo descuento en: {10 - (ReservasCompletadas % 10)} reservas\n");
+        Console.WriteLine($"🔢 Próximo descuento en: {10 - (ReservasRealizadas % 10)} reservas\n"); // ← Cambiado
     }
 }

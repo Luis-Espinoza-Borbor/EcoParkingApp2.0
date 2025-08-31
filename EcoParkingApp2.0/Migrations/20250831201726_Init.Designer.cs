@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcoParkingApp2._0.Migrations
 {
     [DbContext(typeof(EcoParkingContext))]
-    [Migration("20250831034017_Init")]
+    [Migration("20250831201726_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -76,13 +76,30 @@ namespace EcoParkingApp2._0.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime>("HoraSalidaProg")
+                    b.Property<DateTime>("HoraFinProgramada")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("HoraSalidaReal")
+                    b.Property<DateTime>("HoraFinReal")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("MontoAPagar")
+                    b.Property<DateTime>("HoraInicioReserva")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MinutosExcedidos")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MontoMulta")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("Pagada")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("TarifaPorHora")
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("Usuario")
@@ -108,13 +125,16 @@ namespace EcoParkingApp2._0.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CantidadDisponible")
+                        .HasColumnType("int");
+
                     b.Property<string>("CodigoReserva")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<bool>("Disponible")
-                        .HasColumnType("bit");
+                    b.Property<DateTime?>("HoraFinReserva")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("HoraReserva")
                         .HasColumnType("datetime2");
@@ -153,18 +173,26 @@ namespace EcoParkingApp2._0.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal>("DescuentoAplicado")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FechaUltimaReserva")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("NivelFidelidad")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("NombreUsuario")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("ReservasCompletadas")
+                    b.Property<int>("ReservasRealizadas")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalDescuentoAplicado")
@@ -222,8 +250,8 @@ namespace EcoParkingApp2._0.Migrations
 
                     b.Property<string>("Cedula")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Correo")
                         .IsRequired()
