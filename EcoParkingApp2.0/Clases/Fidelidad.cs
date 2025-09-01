@@ -24,17 +24,14 @@ public class Fidelidad
     [MaxLength(150)]
     public string CorreoUsuario { get; set; } = string.Empty;
 
-    // CAMBIAR EL NOMBRE DE LA PROPIEDAD PARA QUE COINCIDA CON EL CONTEXT
-    public int ReservasRealizadas { get; set; } // ← Cambiado de ReservasCompletadas
+    public int ReservasRealizadas { get; set; }
 
-    // AÑADIR PROPIEDADES FALTANTES
     [MaxLength(50)]
-    public string NivelFidelidad { get; set; } = "Bronce"; // ← Nueva propiedad
+    public string NivelFidelidad { get; set; } = "Bronce";
 
     [Column(TypeName = "decimal(5,2)")]
-    public decimal DescuentoAplicado { get; set; } // ← Nueva propiedad
+    public decimal DescuentoAplicado { get; set; } 
 
-    // MANTENER PROPIEDADES EXISTENTES
     public DateTime UltimaFechaBeneficio { get; set; }
 
     public DateTime FechaRegistro { get; set; }
@@ -44,47 +41,40 @@ public class Fidelidad
     [Column(TypeName = "decimal(10,2)")]
     public decimal TotalDescuentoAplicado { get; set; }
 
-    // Constructor para EF Core
     public Fidelidad() { }
 
-    // Constructor para nuevo usuario
     public Fidelidad(string nombreUsuario, string correoUsuario)
     {
         NombreUsuario = nombreUsuario;
         CorreoUsuario = correoUsuario;
-        ReservasRealizadas = 0; // ← Cambiado
-        NivelFidelidad = "Bronce"; // ← Nueva
-        DescuentoAplicado = 0; // ← Nueva
+        ReservasRealizadas = 0;
+        NivelFidelidad = "Bronce";
+        DescuentoAplicado = 0;
         UltimaFechaBeneficio = DateTime.MinValue;
         FechaRegistro = DateTime.Now;
         TotalDescuentoAplicado = 0;
     }
 
-    // Registra cada reserva completada
     public async Task RegistrarReservaAsync()
     {
-        ReservasRealizadas++; // ← Cambiado
+        ReservasRealizadas++;
         FechaUltimaReserva = DateTime.Now;
         await GuardarEnBaseDeDatosAsync();
     }
 
-    // Verifica y aplica descuento si corresponde
     public async Task<decimal> VerificarYAplicarDescuentoAsync(decimal montoOriginal)
     {
-        const decimal descuento = 0.20m; // 20%
+        const decimal descuento = 0.20m;
 
-        // Contar reservas desde el último beneficio
         int reservasDesdeUltimoBeneficio = await ObtenerReservasDesdeUltimoBeneficioAsync();
 
         if (reservasDesdeUltimoBeneficio >= 10)
         {
-            // Aplica descuento
             decimal montoConDescuento = montoOriginal * (1 - descuento);
             decimal descuentoAplicado = montoOriginal - montoConDescuento;
 
-            // Actualizar propiedades
-            this.DescuentoAplicado = descuentoAplicado; // ← Nueva
-            this.NivelFidelidad = CalcularNivelFidelidad(); // ← Nueva
+            this.DescuentoAplicado = descuentoAplicado;
+            this.NivelFidelidad = CalcularNivelFidelidad();
             UltimaFechaBeneficio = DateTime.Now;
             TotalDescuentoAplicado += descuentoAplicado;
 
@@ -97,7 +87,6 @@ public class Fidelidad
         return montoOriginal;
     }
 
-    // Nuevo método para calcular nivel de fidelidad
     private string CalcularNivelFidelidad()
     {
         return ReservasRealizadas switch
@@ -109,36 +98,30 @@ public class Fidelidad
         };
     }
 
-    // Obtiene reservas desde el último beneficio
     private async Task<int> ObtenerReservasDesdeUltimoBeneficioAsync()
     {
         using var context = new EcoParkingContext();
 
         if (UltimaFechaBeneficio == DateTime.MinValue)
         {
-            // Si nunca ha tenido beneficio, contar todas las reservas
-            return ReservasRealizadas; // ← Cambiado
+            return ReservasRealizadas;
         }
         else
         {
-            // Contar reservas desde el último beneficio
             return await context.Fidelidad
                 .Where(f => f.NombreUsuario == this.NombreUsuario &&
                            f.FechaUltimaReserva > this.UltimaFechaBeneficio)
-                .SumAsync(f => f.ReservasRealizadas); // ← Cambiado
+                .SumAsync(f => f.ReservasRealizadas);
         }
     }
 
-    // Envía notificación de descuento
     private async Task EnviarNotificacionAsync(decimal montoOriginal, decimal montoConDescuento, decimal descuentoAplicado)
     {
-        // Mensaje en consola
-        Console.WriteLine($"\n🎉 ¡Felicidades {NombreUsuario}!");
-        Console.WriteLine($"✅ Has alcanzado 10 reservas. Se ha aplicado un 20% de descuento.");
-        Console.WriteLine($"💰 Total original: ${montoOriginal:F2} → Total con descuento: ${montoConDescuento:F2}");
-        Console.WriteLine($"🎁 Descuento aplicado: ${descuentoAplicado:F2}\n");
+        Console.WriteLine($"\n ¡Felicidades {NombreUsuario}!");
+        Console.WriteLine($" Has alcanzado 10 reservas. Se ha aplicado un 20% de descuento.");
+        Console.WriteLine($" Total original: ${montoOriginal:F2} → Total con descuento: ${montoConDescuento:F2}");
+        Console.WriteLine($" Descuento aplicado: ${descuentoAplicado:F2}\n");
 
-        // Envío de correo electrónico
         try
         {
             string remitente = "ecoparkingproyecto@gmail.com";
@@ -181,15 +164,14 @@ public class Fidelidad
             };
 
             await cliente.SendMailAsync(mensaje);
-            Console.WriteLine("📧 Correo de descuento enviado al usuario.");
+            Console.WriteLine(" Correo de descuento enviado al usuario.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error enviando correo de descuento: {ex.Message}");
+            Console.WriteLine($" Error enviando correo de descuento: {ex.Message}");
         }
     }
 
-    // Guarda en base de datos
     public async Task GuardarEnBaseDeDatosAsync()
     {
         try
@@ -201,10 +183,9 @@ public class Fidelidad
 
             if (existingFidelidad != null)
             {
-                // Actualizar existente
-                existingFidelidad.ReservasRealizadas = this.ReservasRealizadas; // ← Cambiado
-                existingFidelidad.NivelFidelidad = this.NivelFidelidad; // ← Nueva
-                existingFidelidad.DescuentoAplicado = this.DescuentoAplicado; // ← Nueva
+                existingFidelidad.ReservasRealizadas = this.ReservasRealizadas;
+                existingFidelidad.NivelFidelidad = this.NivelFidelidad;
+                existingFidelidad.DescuentoAplicado = this.DescuentoAplicado;
                 existingFidelidad.UltimaFechaBeneficio = this.UltimaFechaBeneficio;
                 existingFidelidad.FechaUltimaReserva = this.FechaUltimaReserva;
                 existingFidelidad.TotalDescuentoAplicado = this.TotalDescuentoAplicado;
@@ -212,7 +193,6 @@ public class Fidelidad
             }
             else
             {
-                // Crear nuevo
                 context.Fidelidad.Add(this);
             }
 
@@ -220,11 +200,10 @@ public class Fidelidad
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error guardando fidelidad: {ex.Message}");
+            Console.WriteLine($" Error guardando fidelidad: {ex.Message}");
         }
     }
 
-    // Carga desde base de datos
     public static async Task<Fidelidad> ObtenerPorUsuarioAsync(string nombreUsuario, string correoUsuario = "")
     {
         try
@@ -242,7 +221,6 @@ public class Fidelidad
         }
     }
 
-    // Obtiene el historial de descuentos de un usuario
     public static async Task<List<Fidelidad>> ObtenerHistorialUsuarioAsync(string nombreUsuario)
     {
         try
@@ -255,21 +233,20 @@ public class Fidelidad
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error obteniendo historial: {ex.Message}");
+            Console.WriteLine($" Error obteniendo historial: {ex.Message}");
             return new List<Fidelidad>();
         }
     }
 
-    // Muestra estadísticas de fidelidad
     public void MostrarEstadisticas()
     {
         Console.WriteLine("\n⭐ Programa de Fidelidad");
-        Console.WriteLine($"👤 Usuario: {NombreUsuario}");
-        Console.WriteLine($"📊 Reservas realizadas: {ReservasRealizadas}"); // ← Cambiado
-        Console.WriteLine($"🏆 Nivel: {NivelFidelidad}"); // ← Nueva
-        Console.WriteLine($"🎁 Descuento aplicado: ${DescuentoAplicado:F2}"); // ← Nueva
-        Console.WriteLine($"💰 Descuento total aplicado: ${TotalDescuentoAplicado:F2}");
-        Console.WriteLine($"📅 Último beneficio: {(UltimaFechaBeneficio == DateTime.MinValue ? "Nunca" : UltimaFechaBeneficio.ToString("dd/MM/yyyy"))}");
-        Console.WriteLine($"🔢 Próximo descuento en: {10 - (ReservasRealizadas % 10)} reservas\n"); // ← Cambiado
+        Console.WriteLine($" Usuario: {NombreUsuario}");
+        Console.WriteLine($" Reservas realizadas: {ReservasRealizadas}");
+        Console.WriteLine($" Nivel: {NivelFidelidad}");
+        Console.WriteLine($" Descuento aplicado: ${DescuentoAplicado:F2}");
+        Console.WriteLine($" Descuento total aplicado: ${TotalDescuentoAplicado:F2}");
+        Console.WriteLine($" Último beneficio: {(UltimaFechaBeneficio == DateTime.MinValue ? "Nunca" : UltimaFechaBeneficio.ToString("dd/MM/yyyy"))}");
+        Console.WriteLine($" Próximo descuento en: {10 - (ReservasRealizadas % 10)} reservas\n");
     }
 }

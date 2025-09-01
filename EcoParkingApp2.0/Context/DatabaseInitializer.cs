@@ -13,27 +13,22 @@ namespace EcoParking_Proyecto
             {
                 using var context = new EcoParkingContext();
 
-                // SOLUCIÓN: Usar EnsureCreatedAsync en lugar de EnsureDeletedAsync
-                // Esto crea las tablas si no existen, pero no elimina las existentes
                 await context.Database.EnsureCreatedAsync();
 
-                Console.WriteLine("✅ Base de datos verificada.");
+                Console.WriteLine(" Base de datos verificada.");
 
-                // Crear administrador por defecto solo si no existe
                 await CrearAdministradorPorDefectoAsync(context);
 
-                // Crear los parqueos específicos solo si no existen
                 await CrearParqueosEspecificosAsync(context);
 
-                // Verificar y agregar columnas faltantes
                 await VerificarColumnasFaltantesAsync(context);
 
-                Console.WriteLine("✅ Inicialización completada correctamente.");
+                Console.WriteLine(" Inicialización completada correctamente.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error en inicialización: {ex.Message}");
-                Console.WriteLine($"📋 Detalles: {ex.InnerException?.Message}");
+                Console.WriteLine($" Error en inicialización: {ex.Message}");
+                Console.WriteLine($" Detalles: {ex.InnerException?.Message}");
             }
         }
 
@@ -41,7 +36,6 @@ namespace EcoParking_Proyecto
         {
             try
             {
-                // Verificar si ya existe un administrador
                 var adminExistente = await context.Administradores
                     .FirstOrDefaultAsync(a => a.Identificacion == "admin123");
 
@@ -50,18 +44,18 @@ namespace EcoParking_Proyecto
                     var admin = new Administrador("Admin Principal", "admin123", "admin123");
                     context.Administradores.Add(admin);
                     await context.SaveChangesAsync();
-                    Console.WriteLine("✅ Administrador por defecto creado:");
-                    Console.WriteLine($"   👤 Usuario: admin123");
-                    Console.WriteLine($"   🔑 Contraseña: admin123");
+                    Console.WriteLine(" Administrador por defecto creado:");
+                    Console.WriteLine($"    Usuario: admin123");
+                    Console.WriteLine($"    Contraseña: admin123");
                 }
                 else
                 {
-                    Console.WriteLine("ℹ️  Administrador ya existe en la base de datos.");
+                    Console.WriteLine("  Administrador ya existe en la base de datos.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error creando administrador: {ex.Message}");
+                Console.WriteLine($" Error creando administrador: {ex.Message}");
             }
         }
 
@@ -69,7 +63,6 @@ namespace EcoParking_Proyecto
         {
             try
             {
-                // Verificar si ya existen parqueos
                 if (!await context.Parqueos.AnyAsync())
                 {
                     var parqueos = new[]
@@ -82,20 +75,20 @@ namespace EcoParking_Proyecto
                     context.Parqueos.AddRange(parqueos);
                     await context.SaveChangesAsync();
 
-                    Console.WriteLine("✅ Parqueos específicos creados:");
+                    Console.WriteLine(" Parqueos específicos creados:");
                     foreach (var parqueo in parqueos)
                     {
-                        Console.WriteLine($"   📍 {parqueo.Ubicacion} - {parqueo.TipoVehiculo} - ${parqueo.TarifaPorHora}/hora - {parqueo.CantidadDisponible} espacios");
+                        Console.WriteLine($"    {parqueo.Ubicacion} - {parqueo.TipoVehiculo} - ${parqueo.TarifaPorHora}/hora - {parqueo.CantidadDisponible} espacios");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("ℹ️  Ya existen parqueos en la base de datos.");
+                    Console.WriteLine("  Ya existen parqueos en la base de datos.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error creando parqueos: {ex.Message}");
+                Console.WriteLine($" Error creando parqueos: {ex.Message}");
             }
         }
 
@@ -103,10 +96,8 @@ namespace EcoParking_Proyecto
         {
             try
             {
-                // Verificar y agregar columnas faltantes en Fidelidad
                 var sqlCommands = new[]
                 {
-                    // Verificar si la columna existe antes de agregarla
                     @"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
                       WHERE TABLE_NAME = 'Fidelidad' AND COLUMN_NAME = 'ReservasRealizadas')
                       BEGIN
@@ -137,30 +128,29 @@ namespace EcoParking_Proyecto
                     }
                     catch (Exception sqlEx)
                     {
-                        Console.WriteLine($"⚠️  Error ejecutando comando SQL: {sqlEx.Message}");
+                        Console.WriteLine($"  Error ejecutando comando SQL: {sqlEx.Message}");
                     }
                 }
 
-                Console.WriteLine("✅ Columnas verificadas y actualizadas.");
+                Console.WriteLine(" Columnas verificadas y actualizadas.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Error verificando columnas: {ex.Message}");
+                Console.WriteLine($"  Error verificando columnas: {ex.Message}");
             }
         }
 
-        // Método separado solo para verificar estructura (sin crear datos)
         public static async Task VerificarEstructuraAsync()
         {
             try
             {
                 using var context = new EcoParkingContext();
                 await VerificarColumnasFaltantesAsync(context);
-                Console.WriteLine("✅ Estructura de base de datos verificada.");
+                Console.WriteLine(" Estructura de base de datos verificada.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Error verificando estructura: {ex.Message}");
+                Console.WriteLine($"  Error verificando estructura: {ex.Message}");
             }
         }
     }

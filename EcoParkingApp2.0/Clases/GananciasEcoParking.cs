@@ -35,10 +35,8 @@ public class GananciasEcoParking
     [MaxLength(100)]
     public string Usuario { get; set; } = string.Empty;
 
-    // Constructor para EF Core
     public GananciasEcoParking() { }
 
-    // Constructor para nuevos registros
     public GananciasEcoParking(string concepto, decimal monto, string metodoPago,
                              string ubicacion = "", string tipoVehiculo = "", string usuario = "")
     {
@@ -51,7 +49,6 @@ public class GananciasEcoParking
         Fecha = DateTime.Now;
     }
 
-    // Registra un nuevo pago
     public async Task RegistrarPagoAsync()
     {
         try
@@ -62,11 +59,10 @@ public class GananciasEcoParking
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error registrando ganancia: {ex.Message}");
+            Console.WriteLine($" Error registrando ganancia: {ex.Message}");
         }
     }
 
-    // Total de la semana actual
     public static async Task<decimal> TotalSemanaAsync()
     {
         try
@@ -79,12 +75,11 @@ public class GananciasEcoParking
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error calculando total semanal: {ex.Message}");
+            Console.WriteLine($" Error calculando total semanal: {ex.Message}");
             return 0;
         }
     }
 
-    // Total del mes actual
     public static async Task<decimal> TotalMesAsync()
     {
         try
@@ -97,12 +92,11 @@ public class GananciasEcoParking
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error calculando total mensual: {ex.Message}");
+            Console.WriteLine($" Error calculando total mensual: {ex.Message}");
             return 0;
         }
     }
 
-    // Total del año actual
     public static async Task<decimal> TotalAnualAsync()
     {
         try
@@ -115,12 +109,11 @@ public class GananciasEcoParking
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error calculando total anual: {ex.Message}");
+            Console.WriteLine($" Error calculando total anual: {ex.Message}");
             return 0;
         }
     }
 
-    // Total histórico
     public static async Task<decimal> TotalHistoricoAsync()
     {
         try
@@ -131,12 +124,11 @@ public class GananciasEcoParking
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error calculando total histórico: {ex.Message}");
+            Console.WriteLine($" Error calculando total histórico: {ex.Message}");
             return 0;
         }
     }
 
-    // Muestra resumen de ganancias
     public static async Task MostrarResumenAsync()
     {
         try
@@ -146,42 +138,38 @@ public class GananciasEcoParking
             decimal totalAnual = await TotalAnualAsync();
             decimal totalHistorico = await TotalHistoricoAsync();
 
-            Console.WriteLine("\n💰 Reporte de Ganancias:");
+            Console.WriteLine("\n Reporte de Ganancias:");
             Console.WriteLine("========================");
-            Console.WriteLine($"📅 Semana actual: ${totalSemana:F2}");
-            Console.WriteLine($"🗓️  Mes actual: ${totalMes:F2}");
-            Console.WriteLine($"📊 Año actual: ${totalAnual:F2}");
-            Console.WriteLine($"🏆 Total histórico: ${totalHistorico:F2}");
+            Console.WriteLine($" Semana actual: ${totalSemana:F2}");
+            Console.WriteLine($" Mes actual: ${totalMes:F2}");
+            Console.WriteLine($" Año actual: ${totalAnual:F2}");
+            Console.WriteLine($" Total histórico: ${totalHistorico:F2}");
 
-            // Estadísticas adicionales
             await MostrarEstadisticasDetalladasAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error mostrando resumen: {ex.Message}");
+            Console.WriteLine($" Error mostrando resumen: {ex.Message}");
         }
     }
 
-    // Estadísticas detalladas
     private static async Task MostrarEstadisticasDetalladasAsync()
     {
         try
         {
             using var context = new EcoParkingContext();
 
-            // Por método de pago
             var porMetodoPago = await context.Ganancias
                 .GroupBy(g => g.MetodoPago)
                 .Select(g => new { Metodo = g.Key, Total = g.Sum(x => x.Monto) })
                 .ToListAsync();
 
-            Console.WriteLine("\n💳 Distribución por método de pago:");
+            Console.WriteLine("\n Distribución por método de pago:");
             foreach (var item in porMetodoPago)
             {
                 Console.WriteLine($"   {item.Metodo}: ${item.Total:F2}");
             }
 
-            // Por ubicación
             var porUbicacion = await context.Ganancias
                 .Where(g => !string.IsNullOrEmpty(g.UbicacionParqueo))
                 .GroupBy(g => g.UbicacionParqueo)
@@ -199,20 +187,18 @@ public class GananciasEcoParking
                 }
             }
 
-            // Promedio diario
             var promedioDiario = await context.Ganancias
                 .Where(g => g.Fecha >= DateTime.Now.AddDays(-30))
                 .AverageAsync(g => (decimal?)g.Monto) ?? 0;
 
-            Console.WriteLine($"\n📈 Promedio diario (últimos 30 días): ${promedioDiario:F2}");
+            Console.WriteLine($"\n Promedio diario (últimos 30 días): ${promedioDiario:F2}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error mostrando estadísticas detalladas: {ex.Message}");
+            Console.WriteLine($" Error mostrando estadísticas detalladas: {ex.Message}");
         }
     }
 
-    // Obtiene reporte por rango de fechas
     public static async Task<List<GananciasEcoParking>> ObtenerReportePorFechaAsync(DateTime fechaInicio, DateTime fechaFin)
     {
         try
@@ -225,12 +211,11 @@ public class GananciasEcoParking
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error obteniendo reporte: {ex.Message}");
+            Console.WriteLine($" Error obteniendo reporte: {ex.Message}");
             return new List<GananciasEcoParking>();
         }
     }
 
-    // Método estático para registrar pago fácilmente
     public static async Task RegistrarPagoStaticAsync(string concepto, decimal monto, string metodoPago,
                                                     string ubicacion = "", string tipoVehiculo = "", string usuario = "")
     {
@@ -238,7 +223,6 @@ public class GananciasEcoParking
         await ganancia.RegistrarPagoAsync();
     }
 
-    // Genera reporte CSV
     public static async Task<string> GenerarReporteCSVAsync(DateTime fechaInicio, DateTime fechaFin)
     {
         try
@@ -256,19 +240,17 @@ public class GananciasEcoParking
                        $"{item.UbicacionParqueo},{item.TipoVehiculo},{item.Usuario}\n";
             }
 
-            // Guardar archivo
             string nombreArchivo = $"reporte_ganancias_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
             await System.IO.File.WriteAllTextAsync(nombreArchivo, csv);
 
-            return $"✅ Reporte generado: {nombreArchivo}";
+            return $" Reporte generado: {nombreArchivo}";
         }
         catch (Exception ex)
         {
-            return $"❌ Error generando reporte: {ex.Message}";
+            return $" Error generando reporte: {ex.Message}";
         }
     }
 
-    // Limpia registros antiguos (más de 2 años)
     public static async Task LimpiarRegistrosAntiguosAsync()
     {
         try
@@ -283,12 +265,12 @@ public class GananciasEcoParking
             {
                 context.Ganancias.RemoveRange(registrosAntiguos);
                 await context.SaveChangesAsync();
-                Console.WriteLine($"🗑️  Eliminados {registrosAntiguos.Count} registros antiguos de ganancias");
+                Console.WriteLine($"  Eliminados {registrosAntiguos.Count} registros antiguos de ganancias");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error limpiando registros: {ex.Message}");
+            Console.WriteLine($" Error limpiando registros: {ex.Message}");
         }
     }
 }

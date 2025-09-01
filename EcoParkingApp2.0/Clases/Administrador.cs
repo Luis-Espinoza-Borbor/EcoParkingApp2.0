@@ -43,12 +43,12 @@ namespace EcoParkingApp
         {
             if (nuevaCantidad < 0)
             {
-                Console.WriteLine("❌ La cantidad no puede ser negativa.");
+                Console.WriteLine(" La cantidad no puede ser negativa.");
                 return;
             }
 
             parqueo.CantidadDisponible = nuevaCantidad;
-            Console.WriteLine($"✅ Cantidad de espacios en {parqueo.Ubicacion} actualizada a: {nuevaCantidad}");
+            Console.WriteLine($" Cantidad de espacios en {parqueo.Ubicacion} actualizada a: {nuevaCantidad}");
         }
 
         public void ActualizarTarifa(EcoParking parqueo, decimal nuevaTarifa)
@@ -63,7 +63,6 @@ namespace EcoParkingApp
             Console.WriteLine($" Nueva tarifa en {parqueo.Ubicacion}: ${nuevaTarifa:F2} por hora.");
         }
 
-        // NUEVO MÉTODO PARA INICIAR SESIÓN
         public static async Task<Administrador?> IniciarSesionEFAsync()
         {
             Console.WriteLine("\n--- INICIO DE SESIÓN ADMINISTRADOR ---");
@@ -75,7 +74,7 @@ namespace EcoParkingApp
 
             if (string.IsNullOrEmpty(identificacion) || string.IsNullOrEmpty(contraseña))
             {
-                Console.WriteLine("❌ Identificación y contraseña son obligatorios.");
+                Console.WriteLine(" Identificación y contraseña son obligatorios.");
                 return null;
             }
 
@@ -87,18 +86,18 @@ namespace EcoParkingApp
 
                 if (admin != null)
                 {
-                    Console.WriteLine("✅ ¡Inicio de sesión exitoso!");
+                    Console.WriteLine(" ¡Inicio de sesión exitoso!");
                     return admin;
                 }
                 else
                 {
-                    Console.WriteLine("❌ Credenciales incorrectas.");
+                    Console.WriteLine(" Credenciales incorrectas.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error de base de datos: {ex.Message}");
+                Console.WriteLine($" Error de base de datos: {ex.Message}");
                 return null;
             }
         }

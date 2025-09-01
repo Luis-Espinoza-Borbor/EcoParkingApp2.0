@@ -61,21 +61,18 @@ namespace EcoParkingApp
 
         public CitacionParqueo() { }
 
-        // MÉTODO: Generar citación por tiempo excedido
         public static async Task GenerarPorTiempoExcedidoAsync(Usuario usuario, EcoParking parqueo,
                                                             TimeSpan tiempoReservado, TimeSpan tiempoPagado)
         {
             if (tiempoPagado >= tiempoReservado)
-                return; // No generar citación si pagó todo el tiempo
+                return;
 
-            // Calcular tiempo excedido
             TimeSpan tiempoExcedido = tiempoReservado - tiempoPagado;
             int minutosExcedidos = (int)tiempoExcedido.TotalMinutes;
 
             if (minutosExcedidos <= 0)
                 return;
 
-            // Calcular multa (40% del valor total del parqueo)
             decimal valorTotalParqueo = (decimal)tiempoReservado.TotalHours * parqueo.TarifaPorHora;
             decimal multa = valorTotalParqueo * 0.40m;
 
@@ -107,11 +104,11 @@ namespace EcoParkingApp
                 using var context = new EcoParkingContext();
                 context.Citaciones.Add(this);
                 await context.SaveChangesAsync();
-                Console.WriteLine("✅ Citación por tiempo excedido guardada en base de datos!");
+                Console.WriteLine(" Citación por tiempo excedido guardada en base de datos!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al guardar citación: {ex.Message}");
+                Console.WriteLine($" Error al guardar citación: {ex.Message}");
             }
         }
 
@@ -155,15 +152,14 @@ Sistema de Gestión EcoParking"
                 };
 
                 await smtp.SendMailAsync(msg);
-                Console.WriteLine("✅ Correo de citación enviado al usuario!");
+                Console.WriteLine(" Correo de citación enviado al usuario!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al enviar correo: {ex.Message}");
+                Console.WriteLine($" Error al enviar correo: {ex.Message}");
             }
         }
 
-        // MÉTODO PARA ENVIAR FACTURA DE PAGO DE MULTA
         public async Task EnviarFacturaPagoAsync()
         {
             try
@@ -224,15 +220,14 @@ Sistema de Gestión EcoParking
                 };
 
                 await smtp.SendMailAsync(msg);
-                Console.WriteLine("✅ Factura de pago enviada al correo del usuario.");
+                Console.WriteLine(" Factura de pago enviada al correo del usuario.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al enviar factura: {ex.Message}");
+                Console.WriteLine($" Error al enviar factura: {ex.Message}");
             }
         }
 
-        // MÉTODO PARA MARCAR COMO PAGADA Y ENVIAR FACTURA
         public async Task MarcarComoPagadaAsync()
         {
             try
@@ -243,19 +238,17 @@ Sistema de Gestión EcoParking
                 {
                     citacion.Pagada = true;
                     await context.SaveChangesAsync();
-                    Console.WriteLine("✅ Citación marcada como pagada.");
+                    Console.WriteLine(" Citación marcada como pagada.");
 
-                    // Enviar factura por correo
                     await EnviarFacturaPagoAsync();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error marcando citación como pagada: {ex.Message}");
+                Console.WriteLine($" Error marcando citación como pagada: {ex.Message}");
             }
         }
 
-        // MÉTODO PARA OBTENER CITACIONES PENDIENTES DE UN USUARIO
         public static async Task<List<CitacionParqueo>> ObtenerCitacionesPendientesAsync(string usuario)
         {
             try
@@ -267,7 +260,7 @@ Sistema de Gestión EcoParking
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error obteniendo citaciones: {ex.Message}");
+                Console.WriteLine($" Error obteniendo citaciones: {ex.Message}");
                 return new List<CitacionParqueo>();
             }
         }

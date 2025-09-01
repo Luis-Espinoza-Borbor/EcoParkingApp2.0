@@ -1,11 +1,11 @@
-﻿using EcoParkingApp; // ← Asegúrate de tener este using
+﻿using EcoParkingApp;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace EcoParkingApp; // ← NAMESPACE CORREGIDO
+namespace EcoParkingApp;
 
-[Table("ReseñasParqueo")] // ← TABLE NAME CORREGIDO
+[Table("ReseñasParqueo")]
 public class ReseñaParqueo
 {
     [Key]
@@ -45,13 +45,12 @@ public class ReseñaParqueo
         return $"Parqueo: {IdParqueo} | Usuario: {Usuario} | Puntuación: {Puntuacion}/5 | Fecha: {Fecha:yyyy-MM-dd} | Comentario: {Comentario}";
     }
 
-    // Método estático para mostrar reseñas
     public static async Task MostrarAsync()
     {
         try
         {
             await using var context = new EcoParkingContext();
-            var reseñas = await context.ReseñasParqueo // ← CORREGIDO
+            var reseñas = await context.ReseñasParqueo
                 .OrderByDescending(r => r.Fecha)
                 .ToListAsync();
 
@@ -76,33 +75,31 @@ public class ReseñaParqueo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al cargar reseñas: {ex.Message}");
+            Console.WriteLine($" Error al cargar reseñas: {ex.Message}");
         }
     }
 
-    // Método estático para guardar reseñas
     public static async Task GuardarAsync(ReseñaParqueo reseña)
     {
         try
         {
             await using var context = new EcoParkingContext();
-            context.ReseñasParqueo.Add(reseña); // ← CORREGIDO
+            context.ReseñasParqueo.Add(reseña);
             await context.SaveChangesAsync();
-            Console.WriteLine("✅ Reseña guardada exitosamente!");
+            Console.WriteLine(" Reseña guardada exitosamente!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al guardar reseña: {ex.Message}");
+            Console.WriteLine($" Error al guardar reseña: {ex.Message}");
         }
     }
 
-    // Método para obtener el promedio de puntuaciones
     public static async Task<decimal> ObtenerPuntuacionPromedioAsync(string idParqueo)
     {
         try
         {
             await using var context = new EcoParkingContext();
-            var promedio = await context.ReseñasParqueo // ← CORREGIDO
+            var promedio = await context.ReseñasParqueo
                 .Where(r => r.IdParqueo == idParqueo)
                 .AverageAsync(r => (decimal?)r.Puntuacion) ?? 0;
 
@@ -110,41 +107,39 @@ public class ReseñaParqueo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al calcular puntuación promedio: {ex.Message}");
+            Console.WriteLine($" Error al calcular puntuación promedio: {ex.Message}");
             return 0;
         }
     }
 
-    // Método para obtener todas las reseñas de un parqueo
     public static async Task<List<ReseñaParqueo>> ObtenerPorParqueoAsync(string idParqueo)
     {
         try
         {
             await using var context = new EcoParkingContext();
-            return await context.ReseñasParqueo // ← CORREGIDO
+            return await context.ReseñasParqueo
                 .Where(r => r.IdParqueo == idParqueo)
                 .OrderByDescending(r => r.Fecha)
                 .ToListAsync();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al obtener reseñas: {ex.Message}");
+            Console.WriteLine($" Error al obtener reseñas: {ex.Message}");
             return new List<ReseñaParqueo>();
         }
     }
 
-    // Método para mostrar estadísticas de reseñas
     public static async Task MostrarEstadisticasAsync()
     {
         try
         {
             await using var context = new EcoParkingContext();
 
-            var totalReseñas = await context.ReseñasParqueo.CountAsync(); // ← CORREGIDO
-            var promedioGeneral = await context.ReseñasParqueo // ← CORREGIDO
+            var totalReseñas = await context.ReseñasParqueo.CountAsync();
+            var promedioGeneral = await context.ReseñasParqueo
                 .AverageAsync(r => (decimal?)r.Puntuacion) ?? 0;
 
-            var reseñasPorPuntuacion = await context.ReseñasParqueo // ← CORREGIDO
+            var reseñasPorPuntuacion = await context.ReseñasParqueo
                 .GroupBy(r => r.Puntuacion)
                 .Select(g => new { Puntuacion = g.Key, Cantidad = g.Count() })
                 .OrderByDescending(x => x.Puntuacion)
@@ -163,32 +158,31 @@ public class ReseñaParqueo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al cargar estadísticas: {ex.Message}");
+            Console.WriteLine($" Error al cargar estadísticas: {ex.Message}");
         }
     }
 
-    // Método para eliminar una reseña
     public static async Task<bool> EliminarReseñaAsync(int idReseña)
     {
         try
         {
             await using var context = new EcoParkingContext();
-            var reseña = await context.ReseñasParqueo.FindAsync(idReseña); // ← CORREGIDO
+            var reseña = await context.ReseñasParqueo.FindAsync(idReseña);
 
             if (reseña != null)
             {
-                context.ReseñasParqueo.Remove(reseña); // ← CORREGIDO
+                context.ReseñasParqueo.Remove(reseña);
                 await context.SaveChangesAsync();
-                Console.WriteLine("✅ Reseña eliminada exitosamente!");
+                Console.WriteLine(" Reseña eliminada exitosamente!");
                 return true;
             }
 
-            Console.WriteLine("❌ Reseña no encontrada.");
+            Console.WriteLine(" Reseña no encontrada.");
             return false;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al eliminar reseña: {ex.Message}");
+            Console.WriteLine($" Error al eliminar reseña: {ex.Message}");
             return false;
         }
     }

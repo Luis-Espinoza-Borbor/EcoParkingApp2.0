@@ -27,10 +27,8 @@ public class Usuario
     [MaxLength(20)]
     public string Telefono { get; set; } = string.Empty;
 
-    // Constructor sin parámetros para EF Core
     public Usuario() { }
 
-    // Constructor con parámetros
     public Usuario(string nombre, string cedula, string correo, string telefono)
     {
         Nombre = nombre;
@@ -48,8 +46,6 @@ public class Usuario
         Console.WriteLine($"Correo: {Correo}");
     }
 
-    // ========== MÉTODOS DE BASE DE DATOS CON EF CORE ==========
-
     public static async Task<Usuario?> RegistrarNuevoUsuarioAsync()
     {
         Console.WriteLine("\n=== REGISTRO DE USUARIO ===");
@@ -66,10 +62,9 @@ public class Usuario
         Console.Write("Número de teléfono: ");
         string telefono = Console.ReadLine()?.Trim() ?? "";
 
-        // Validaciones básicas
         if (string.IsNullOrEmpty(nombre) || string.IsNullOrEmpty(cedula) || string.IsNullOrEmpty(correo))
         {
-            Console.WriteLine("❌ Nombre, cédula y correo son obligatorios.");
+            Console.WriteLine(" Nombre, cédula y correo son obligatorios.");
             return null;
         }
 
@@ -77,27 +72,25 @@ public class Usuario
         {
             await using var context = new EcoParkingContext();
 
-            // Verificar si ya existe el usuario
             bool existe = await context.Usuarios
                 .AnyAsync(u => u.Cedula == cedula || u.Correo == correo);
 
             if (existe)
             {
-                Console.WriteLine("❌ Ya existe un usuario con esa cédula o correo.");
+                Console.WriteLine(" Ya existe un usuario con esa cédula o correo.");
                 return null;
             }
 
-            // Crear nuevo usuario
             var nuevoUsuario = new Usuario(nombre, cedula, correo, telefono);
             context.Usuarios.Add(nuevoUsuario);
             await context.SaveChangesAsync();
 
-            Console.WriteLine("✅ Usuario registrado exitosamente!");
+            Console.WriteLine(" Usuario registrado exitosamente!");
             return nuevoUsuario;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al registrar usuario: {ex.Message}");
+            Console.WriteLine($" Error al registrar usuario: {ex.Message}");
             return null;
         }
     }
@@ -113,7 +106,7 @@ public class Usuario
 
         if (string.IsNullOrEmpty(cedula) || string.IsNullOrEmpty(correo))
         {
-            Console.WriteLine("❌ Cédula y correo son obligatorios.");
+            Console.WriteLine(" Cédula y correo son obligatorios.");
             return null;
         }
 
@@ -126,18 +119,18 @@ public class Usuario
 
             if (usuario != null)
             {
-                Console.WriteLine("✅ ¡Inicio de sesión exitoso!");
+                Console.WriteLine(" ¡Inicio de sesión exitoso!");
                 return usuario;
             }
             else
             {
-                Console.WriteLine("❌ Credenciales incorrectas.");
+                Console.WriteLine(" Credenciales incorrectas.");
                 return null;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error de base de datos: {ex.Message}");
+            Console.WriteLine($" Error de base de datos: {ex.Message}");
             return null;
         }
     }
@@ -148,21 +141,21 @@ public class Usuario
         {
             await using var context = new EcoParkingContext();
 
-            if (Id == 0) // Nuevo usuario
+            if (Id == 0)
             {
                 context.Usuarios.Add(this);
             }
-            else // Usuario existente
+            else
             {
                 context.Usuarios.Update(this);
             }
 
             await context.SaveChangesAsync();
-            Console.WriteLine("✅ Usuario guardado en base de datos!");
+            Console.WriteLine(" Usuario guardado en base de datos!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al guardar usuario: {ex.Message}");
+            Console.WriteLine($" Error al guardar usuario: {ex.Message}");
         }
     }
 
@@ -175,7 +168,7 @@ public class Usuario
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al verificar usuario: {ex.Message}");
+            Console.WriteLine($" Error al verificar usuario: {ex.Message}");
             return false;
         }
     }
@@ -189,12 +182,10 @@ public class Usuario
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al obtener usuarios: {ex.Message}");
+            Console.WriteLine($" Error al obtener usuarios: {ex.Message}");
             return new List<Usuario>();
         }
     }
-
-    // ========== MÉTODOS DE ARCHIVO (para compatibilidad) ==========
 
     [Obsolete("Usar métodos de base de datos en su lugar")]
     public void GuardarEnArchivo()
@@ -207,7 +198,7 @@ public class Usuario
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error al guardar en archivo: {ex.Message}");
+            Console.WriteLine($" Error al guardar en archivo: {ex.Message}");
         }
     }
 
@@ -228,7 +219,6 @@ public class Usuario
         }
     }
 
-    // Método de presentación de menú con marco visual
     public static void MostrarMenuConMarco(string titulo, string[] opciones)
     {
         int ancho = 50;

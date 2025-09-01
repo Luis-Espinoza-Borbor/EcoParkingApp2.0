@@ -27,10 +27,8 @@ public class EstadisticaVehicular
 
     public DateTime? FechaUltimoUso { get; set; }
 
-    // Constructor para EF Core
     public EstadisticaVehicular() { }
 
-    // Constructor para crear nuevas estadísticas
     public EstadisticaVehicular(string tipoVehiculo)
     {
         TipoVehiculo = tipoVehiculo;
@@ -46,7 +44,6 @@ public class EstadisticaVehicular
         FechaUltimoUso = DateTime.Now;
     }
 
-    // Métodos estáticos para evitar problemas de conexión a BD
     public static int ObtenerCantidadPorSemana(string tipoVehiculo)
     {
         try
@@ -59,7 +56,7 @@ public class EstadisticaVehicular
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error obteniendo estadísticas semanales: {ex.Message}");
+            Console.WriteLine($" Error obteniendo estadísticas semanales: {ex.Message}");
             return 0;
         }
     }
@@ -76,7 +73,7 @@ public class EstadisticaVehicular
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error obteniendo estadísticas mensuales: {ex.Message}");
+            Console.WriteLine($" Error obteniendo estadísticas mensuales: {ex.Message}");
             return 0;
         }
     }
@@ -94,18 +91,18 @@ public class EstadisticaVehicular
             int totalUsos = estadisticas.Sum(e => e.CantidadUsos);
             decimal totalRecaudado = estadisticas.Sum(e => e.TotalRecaudado);
 
-            Console.WriteLine("\n📊 Estadísticas de uso vehicular:");
-            Console.WriteLine($"🚗 Tipo de vehículo: {TipoVehiculo}");
-            Console.WriteLine($"📅 Últimos 7 días: {ObtenerCantidadPorSemana(TipoVehiculo)} usos");
-            Console.WriteLine($"📆 Este mes: {ObtenerCantidadPorMes(TipoVehiculo)} usos");
-            Console.WriteLine($"📈 Total histórico: {totalUsos} usos");
-            Console.WriteLine($"💰 Total recaudado: ${totalRecaudado:F2}");
-            Console.WriteLine($"🕐 Último uso: {(FechaUltimoUso.HasValue ? FechaUltimoUso.Value.ToString("yyyy-MM-dd HH:mm") : "Nunca")}");
+            Console.WriteLine("\n Estadísticas de uso vehicular:");
+            Console.WriteLine($" Tipo de vehículo: {TipoVehiculo}");
+            Console.WriteLine($" Últimos 7 días: {ObtenerCantidadPorSemana(TipoVehiculo)} usos");
+            Console.WriteLine($" Este mes: {ObtenerCantidadPorMes(TipoVehiculo)} usos");
+            Console.WriteLine($" Total histórico: {totalUsos} usos");
+            Console.WriteLine($" Total recaudado: ${totalRecaudado:F2}");
+            Console.WriteLine($" Último uso: {(FechaUltimoUso.HasValue ? FechaUltimoUso.Value.ToString("yyyy-MM-dd HH:mm") : "Nunca")}");
             Console.WriteLine("==========================================");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error mostrando resumen: {ex.Message}");
+            Console.WriteLine($" Error mostrando resumen: {ex.Message}");
         }
     }
 
@@ -115,13 +112,11 @@ public class EstadisticaVehicular
         {
             using var context = new EcoParkingContext();
 
-            // Buscar si ya existe estadística para este tipo de vehículo
             var existingStat = await context.EstadisticasVehiculares
                 .FirstOrDefaultAsync(e => e.TipoVehiculo == this.TipoVehiculo);
 
             if (existingStat != null)
             {
-                // Actualizar estadística existente
                 existingStat.CantidadUsos = this.CantidadUsos;
                 existingStat.TotalRecaudado = this.TotalRecaudado;
                 existingStat.FechaUltimoUso = this.FechaUltimoUso;
@@ -129,7 +124,6 @@ public class EstadisticaVehicular
             }
             else
             {
-                // Crear nueva estadística
                 context.EstadisticasVehiculares.Add(this);
             }
 
@@ -137,7 +131,7 @@ public class EstadisticaVehicular
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error guardando estadísticas: {ex.Message}");
+            Console.WriteLine($" Error guardando estadísticas: {ex.Message}");
         }
     }
 
@@ -148,7 +142,6 @@ public class EstadisticaVehicular
             using var context = new EcoParkingContext();
             var estadisticas = await context.EstadisticasVehiculares.ToListAsync();
 
-            // Si no hay estadísticas, crear unas por defecto
             if (!estadisticas.Any())
             {
                 estadisticas = new List<EstadisticaVehicular>
@@ -166,9 +159,8 @@ public class EstadisticaVehicular
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error cargando estadísticas: {ex.Message}");
+            Console.WriteLine($" Error cargando estadísticas: {ex.Message}");
 
-            // Retornar estadísticas por defecto si hay error
             return new List<EstadisticaVehicular>
             {
                 new EstadisticaVehicular("Auto"),
@@ -190,12 +182,11 @@ public class EstadisticaVehicular
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error obteniendo estadística: {ex.Message}");
+            Console.WriteLine($" Error obteniendo estadística: {ex.Message}");
             return new EstadisticaVehicular(tipoVehiculo);
         }
     }
 
-    // Método para actualizar estadísticas cuando se hace un pago
     public static async Task ActualizarEstadisticasPorPagoAsync(string tipoVehiculo, decimal monto)
     {
         try
@@ -206,7 +197,7 @@ public class EstadisticaVehicular
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error actualizando estadísticas por pago: {ex.Message}");
+            Console.WriteLine($" Error actualizando estadísticas por pago: {ex.Message}");
         }
     }
 }

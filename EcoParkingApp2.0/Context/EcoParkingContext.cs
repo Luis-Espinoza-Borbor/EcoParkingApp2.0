@@ -32,7 +32,6 @@ public class EcoParkingContext : DbContext
         modelBuilder.Entity<ReseñaParqueo>().ToTable("ReseñasParqueo");
         modelBuilder.Entity<CitacionParqueo>().ToTable("Citaciones");
 
-        // Configuración de EcoParking actualizada con todas las propiedades
         modelBuilder.Entity<EcoParking>()
             .Property(p => p.Ubicacion).IsRequired().HasMaxLength(100);
         modelBuilder.Entity<EcoParking>()
@@ -43,7 +42,6 @@ public class EcoParkingContext : DbContext
             .Property(p => p.CantidadDisponible).IsRequired();
         modelBuilder.Entity<EcoParking>()
             .Property(p => p.TarifaPorHora).HasColumnType("decimal(10,2)");
-        // Asegurar que las propiedades DateTime? sean opcionales en la base de datos
         modelBuilder.Entity<EcoParking>()
             .Property(p => p.HoraReserva).IsRequired(false);
         modelBuilder.Entity<EcoParking>()
@@ -51,7 +49,6 @@ public class EcoParkingContext : DbContext
         modelBuilder.Entity<EcoParking>()
             .Property(p => p.PagoRealizado).IsRequired();
 
-        // Configuración de EstadisticaVehicular actualizada
         modelBuilder.Entity<EstadisticaVehicular>()
             .Property(e => e.TipoVehiculo).IsRequired().HasMaxLength(50);
         modelBuilder.Entity<EstadisticaVehicular>()
@@ -63,7 +60,6 @@ public class EcoParkingContext : DbContext
         modelBuilder.Entity<EstadisticaVehicular>()
             .Property(e => e.FechaUltimoUso).IsRequired(false);
 
-        // Configuración de otras entidades (sin cambios estructurales)
         modelBuilder.Entity<Administrador>()
             .Property(a => a.Nombre).IsRequired().HasMaxLength(100);
         modelBuilder.Entity<Administrador>()

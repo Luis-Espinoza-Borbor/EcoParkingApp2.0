@@ -36,7 +36,6 @@ namespace EcoParking_Proyecto
 
                 string asunto = "Comprobante de Pago - EcoParking";
 
-                // ✅ CORREGIDO: Usar las propiedades correctamente
                 string cuerpoHTML = $@"
                 <html>
                 <body style='font-family: Arial; padding: 20px; background-color: #f4f4f4;'>
@@ -52,7 +51,6 @@ namespace EcoParking_Proyecto
                 </body>
                 </html>";
 
-                // Especifica explícitamente System.Net.Mail para evitar ambigüedad
                 System.Net.Mail.MailMessage mensaje = new System.Net.Mail.MailMessage(
                     new System.Net.Mail.MailAddress(remitente),
                     new System.Net.Mail.MailAddress(this.Destinatario)
@@ -71,15 +69,15 @@ namespace EcoParking_Proyecto
                 };
 
                 cliente.Send(mensaje);
-                Console.WriteLine("✅ Comprobante enviado al correo del usuario.");
+                Console.WriteLine(" Comprobante enviado al correo del usuario.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al enviar el correo: {ex.Message}");
-                // Para debugging más detallado:
+                Console.WriteLine($" Error al enviar el correo: {ex.Message}");
+
                 if (ex.InnerException != null)
                 {
-                    Console.WriteLine($"❌ Error interno: {ex.InnerException.Message}");
+                    Console.WriteLine($" Error interno: {ex.InnerException.Message}");
                 }
             }
         }

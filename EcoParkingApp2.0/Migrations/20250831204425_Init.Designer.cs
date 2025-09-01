@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcoParkingApp2._0.Migrations
 {
     [DbContext(typeof(EcoParkingContext))]
-    [Migration("20250831201726_Init")]
+    [Migration("20250831204425_Init")]
     partial class Init
     {
         /// <inheritdoc />

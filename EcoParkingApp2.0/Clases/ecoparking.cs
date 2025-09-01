@@ -36,7 +36,6 @@ namespace EcoParkingApp
 
         public bool PagoRealizado { get; set; }
 
-        // PROPIEDADES [NotMapped] PARA USO EN MEMORIA
         [NotMapped]
         public bool PuedeReservar => CantidadDisponible > 0;
 
@@ -71,12 +70,12 @@ namespace EcoParkingApp
                 HoraReserva = DateTime.Now;
                 HoraFinReserva = DateTime.Now.Add(tiempoReserva);
                 GetCodigoReserva();
-                Console.WriteLine($"✅ Espacio reservado exitosamente por {tiempoReserva.TotalHours} horas.");
-                Console.WriteLine($"⏰ Hora de fin: {HoraFinReserva:HH:mm}");
+                Console.WriteLine($" Espacio reservado exitosamente por {tiempoReserva.TotalHours} horas.");
+                Console.WriteLine($" Hora de fin: {HoraFinReserva:HH:mm}");
             }
             else
             {
-                Console.WriteLine("❌ No hay espacios disponibles en esta ubicación.");
+                Console.WriteLine(" No hay espacios disponibles en esta ubicación.");
             }
             GuardarEstadoEnArchivo();
         }
@@ -87,7 +86,7 @@ namespace EcoParkingApp
             HoraReserva = null;
             HoraFinReserva = null;
             PagoRealizado = false;
-            Console.WriteLine("✅ Espacio liberado correctamente.");
+            Console.WriteLine(" Espacio liberado correctamente.");
         }
 
         public void GuardarEstadoEnArchivo()
@@ -100,7 +99,7 @@ namespace EcoParkingApp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al guardar en archivo: {ex.Message}");
+                Console.WriteLine($" Error al guardar en archivo: {ex.Message}");
             }
         }
 
@@ -129,26 +128,24 @@ namespace EcoParkingApp
                 }
 
                 await context.SaveChangesAsync();
-                Console.WriteLine("✅ Estado guardado en base de datos correctamente.");
+                Console.WriteLine(" Estado guardado en base de datos correctamente.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al guardar estado en base de datos: {ex.Message}");
+                Console.WriteLine($" Error al guardar estado en base de datos: {ex.Message}");
                 GuardarEstadoEnArchivo();
             }
         }
 
-        // MÉTODO MEJORADO PARA MENÚ DE PAGO
         public (decimal monto, string metodoPago, string infoTarjeta) MenuDePago()
         {
             if (HoraReserva == null)
             {
-                Console.WriteLine("❌ No hay una reserva activa para este parqueo.");
+                Console.WriteLine(" No hay una reserva activa para este parqueo.");
                 return (0, "", "");
             }
 
-            // Pedir tipo de pago
-            Console.WriteLine("\n💳 SELECCIÓN DE MÉTODO DE PAGO");
+            Console.WriteLine("\n SELECCIÓN DE MÉTODO DE PAGO");
             Console.WriteLine("1. Efectivo");
             Console.WriteLine("2. Tarjeta de crédito/débito");
             Console.Write("Seleccione método de pago: ");
@@ -164,11 +161,11 @@ namespace EcoParkingApp
             else if (metodoPagoOp == "2")
             {
                 metodoPago = "Tarjeta";
-                Console.Write("💳 Número de tarjeta: ");
+                Console.Write(" Número de tarjeta: ");
                 string numeroTarjeta = Console.ReadLine()?.Trim() ?? "";
-                Console.Write("📅 Fecha de vencimiento (MM/YY): ");
+                Console.Write(" Fecha de vencimiento (MM/YY): ");
                 string fechaVencimiento = Console.ReadLine()?.Trim() ?? "";
-                Console.Write("🔒 CVV: ");
+                Console.Write(" CVV: ");
                 string cvv = Console.ReadLine()?.Trim() ?? "";
 
                 infoTarjeta = $"Tarjeta: {numeroTarjeta}, Venc: {fechaVencimiento}, CVV: {cvv}";
@@ -179,8 +176,7 @@ namespace EcoParkingApp
                 return (0, "", "");
             }
 
-            // Pedir tiempo de estacionamiento
-            Console.WriteLine("\n⏰ TIEMPO DE ESTACIONAMIENTO");
+            Console.WriteLine("\n TIEMPO DE ESTACIONAMIENTO");
             Console.WriteLine("1. Por horas");
             Console.WriteLine("2. Por minutos");
             Console.Write("Seleccione opción: ");
@@ -197,7 +193,7 @@ namespace EcoParkingApp
                 }
                 else
                 {
-                    Console.WriteLine("❌ Horas inválidas.");
+                    Console.WriteLine(" Horas inválidas.");
                     return (0, "", "");
                 }
             }
@@ -211,22 +207,22 @@ namespace EcoParkingApp
                 }
                 else
                 {
-                    Console.WriteLine("❌ Minutos inválidos.");
+                    Console.WriteLine(" Minutos inválidos.");
                     return (0, "", "");
                 }
             }
             else
             {
-                Console.WriteLine("❌ Opción inválida.");
+                Console.WriteLine(" Opción inválida.");
                 return (0, "", "");
             }
 
-            Console.WriteLine($"\n💵 DETALLE DE PAGO:");
-            Console.WriteLine($"📍 Ubicación: {Ubicacion}");
-            Console.WriteLine($"🚗 Tipo vehículo: {TipoVehiculo}");
-            Console.WriteLine($"💰 Tarifa: ${TarifaPorHora:F2}/hora");
-            Console.WriteLine($"💳 Método: {metodoPago}");
-            Console.WriteLine($"💵 Total a pagar: ${total:F2}");
+            Console.WriteLine($"\n DETALLE DE PAGO:");
+            Console.WriteLine($" Ubicación: {Ubicacion}");
+            Console.WriteLine($" Tipo vehículo: {TipoVehiculo}");
+            Console.WriteLine($" Tarifa: ${TarifaPorHora:F2}/hora");
+            Console.WriteLine($" Método: {metodoPago}");
+            Console.WriteLine($" Total a pagar: ${total:F2}");
 
             Console.Write("\n¿Confirmar pago? (s/n): ");
             string confirmacion = Console.ReadLine()?.Trim().ToLower() ?? "";
@@ -234,7 +230,6 @@ namespace EcoParkingApp
             return confirmacion == "s" ? (total, metodoPago, infoTarjeta) : (0, "", "");
         }
 
-        // MÉTODO PARA OBTENER CÓDIGO DE RESERVA
         public string GetCodigoReserva()
         {
             if (string.IsNullOrEmpty(CodigoReserva))
